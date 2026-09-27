@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IslandReady AI — Prototype Dashboard</title>
+<meta name="description" content="IslandReady AI working prototype: readiness score, checklist, AI assistant, family plan, supplies, recovery. Runs locally, no login required." />
+<style>
+  :root{
+    --ocean-900:#07333d;
+    --ocean-800:#0a4d5a;
+    --ocean-700:#0e6475;
+    --teal:#0ea5a0;
+    --teal-light:#d6f3f1;
+    --sand:#fff8ec;
+    --sun:#ffc53d;
+    --leaf:#1f7a4d;
+    --leaf-bg:#e3f3e9;
+    --ink:#10262e;
+    --muted:#56707a;
+    --line:#dfe9ec;
+    --card:#ffffff;
+    --radius:18px;
+    --shadow:0 10px 30px rgba(7,51,61,.10);
+    --focus:0 0 0 3px rgba(14,165,160,.4);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Inter,"Helvetica Neue",Arial,sans-serif;
+    background:linear-gradient(180deg,#eaf6f5 0%,#fff8ec 55%,#fff 100%);
+    color:var(--ink);line-height:1.6;font-size:16px;
+  }
+  .skip-link{position:absolute;left:-9999px;top:0;background:var(--ocean-800);color:#fff;padding:.7rem 1rem;z-index:100;border-radius:0 0 12px 0}
+  .skip-link:focus{left:0}
+  .alert-bar{background:var(--ocean-900);color:#eafffb;font-size:.9rem}
+  .alert-bar-inner{max-width:1180px;margin:0 auto;padding:.55rem 1.25rem;display:flex;gap:.75rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .dot{width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 6px rgba(74,222,128,.25);display:inline-block}
+  .alert-bar a{color:#fff}
+  header.site{max-width:1180px;margin:0 auto;padding:1.1rem 1.25rem .5rem;display:flex;gap:1rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .brand{display:flex;gap:.85rem;align-items:center}
+  .logo{width:52px;height:52px;border-radius:16px;flex:0 0 52px;background:radial-gradient(circle at 30% 25%,#ffdf8a 0 18%,transparent 19%),linear-gradient(160deg,var(--ocean-800),var(--teal));display:grid;place-items:center;color:#fff;font-weight:800;font-size:1.45rem;position:relative;overflow:hidden}
+  .logo::after{content:"";position:absolute;left:6px;right:6px;bottom:10px;height:12px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 12'%3E%3Cpath d='M0 6 Q12 0 25 6 T50 6 T75 6 T100 6' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' opacity='.85'/%3E%3C/svg%3E") no-repeat center/100% 100%}
+  .brand h1{margin:0;font-size:1.45rem;line-height:1.1;letter-spacing:-.02em}
+  .brand h1 span{color:var(--ocean-700)}
+  .tagline{margin:.15rem 0 0;color:var(--muted);font-size:.95rem}
+  .header-actions{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+  .pill{display:inline-flex;align-items:center;gap:.5rem;background:#fff;border:1px solid var(--line);border-radius:999px;padding:.45rem .8rem;font-size:.88rem;font-weight:600}
+  nav.main{max-width:1180px;margin:.7rem auto 0;padding:0 1.25rem;position:sticky;top:0;z-index:20}
+  .nav-card{background:rgba(255,255,255,.9);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:.4rem;display:flex;gap:.25rem;overflow-x:auto;box-shadow:var(--shadow)}
+  .nav-card a{flex:1 0 auto;text-decoration:none;white-space:nowrap;padding:.65rem 1rem;border-radius:999px;color:var(--ocean-900);font-weight:600;font-size:.94rem;display:inline-flex;gap:.5rem;align-items:center;justify-content:center}
+  .nav-card a[aria-current="page"]{background:var(--ocean-800);color:#fff}
+  .nav-card a:hover:not([aria-current]){background:var(--teal-light)}
+  .nav-card a:focus-visible{outline:none;box-shadow:var(--focus)}
+  main{max-width:1180px;margin:0 auto;padding:1.25rem 1.25rem 3rem}
+  .hero{margin-top:1rem;background:linear-gradient(135deg,var(--ocean-900) 0%,var(--ocean-800) 45%,#117a86 100%);color:#fff;border-radius:22px;padding:1.6rem;position:relative;overflow:hidden;display:grid;grid-template-columns:1.25fr .9fr;gap:1.5rem;align-items:center;box-shadow:var(--shadow)}
+  .hero::before{content:"";position:absolute;inset:0;opacity:.22;background:radial-gradient(circle at 85% 15%,#ffc53d 0 42px,transparent 43px),radial-gradient(ellipse at 90% 90%,rgba(14,165,160,.8) 0 120px,transparent 121px)}
+  .hero>*{position:relative}
+  .eyebrow{display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:.32rem .7rem;border-radius:999px;font-size:.82rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+  .hero h2{margin:.7rem 0 .4rem;font-size:clamp(1.6rem,3.2vw,2.4rem);line-height:1.15;letter-spacing:-.02em}
+  .hero p{margin:0 0 1rem;color:#d8efed;max-width:48ch}
+  .hero-cta{display:flex;gap:.7rem;flex-wrap:wrap}
+  .btn{appearance:none;border:0;border-radius:12px;padding:.85rem 1.25rem;font-weight:800;font-size:1rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:.55rem;transition:transform .08s ease,box-shadow .15s ease;min-height:48px}
+  .btn-primary{background:var(--sun);color:var(--ocean-900);border:2px solid var(--ocean-900);box-shadow:0 2px 0 var(--ocean-900),0 8px 20px rgba(7,51,61,.25);font-size:1.05rem}
+  .btn-primary:hover{background:#f2b705;transform:translateY(-2px);box-shadow:0 4px 0 var(--ocean-900),0 12px 24px rgba(7,51,61,.30);text-decoration:underline;text-underline-offset:3px}
+  .btn-primary:active{transform:translateY(0);background:#eaae00}
+  .btn-primary:focus-visible,.btn-secondary:focus-visible{outline:none;box-shadow:var(--focus)}
+  .btn-secondary{background:#fff;color:var(--ocean-900);border:1px solid var(--line)}
+  .btn-secondary:hover{background:var(--teal-light)}
+  .btn-ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3)}
+  .risk-card{background:#fff;color:var(--ink);border-radius:16px;padding:1rem 1.1rem}
+  .risk-card h3{margin:0 0 .4rem;font-size:.95rem}
+  .risk-row{display:flex;justify-content:space-between;align-items:center;background:var(--sand);border:1px solid #f0dfb8;border-radius:12px;padding:.6rem .75rem;margin:.5rem 0;font-size:.92rem;gap:.5rem}
+  .badge{font-size:.78rem;font-weight:800;padding:.25rem .6rem;border-radius:999px;white-space:nowrap}
+  .badge-watch{background:#fff3c4;color:#6b4a00;border:1px solid #ecd27a}
+  .badge-good{background:var(--leaf-bg);color:var(--leaf);border:1px solid #bfe3cd}
+  .badge-info{background:var(--teal-light);color:var(--ocean-800);border:1px solid #a9e1dd}
+  .grid{margin-top:1.25rem;display:grid;grid-template-columns:1.05fr 1fr 1fr;gap:1rem}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1.15rem;box-shadow:var(--shadow)}
+  .card h2{margin:0 0 .35rem;font-size:1.15rem;letter-spacing:-.015em}
+  .sub{margin:0 0 .9rem;color:var(--muted);font-size:.92rem}
+  .score-wrap{display:flex;gap:1rem;align-items:center;margin:.6rem 0 1rem}
+  .score-ring{flex:0 0 132px}
+  .score-text strong{font-size:2rem;line-height:1}
+  .progress{height:10px;background:#e8f0f2;border-radius:999px;overflow:hidden;margin:.6rem 0}
+  .progress>span{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--ocean-700));border-radius:999px;transition:width .3s ease}
+  .gap-note{background:var(--sand);border:1px dashed #dcc88f;border-radius:12px;padding:.65rem .75rem;font-size:.9rem}
+  .nba{background:linear-gradient(180deg,#fff,#fff8ec);border:1.5px solid var(--ocean-800);position:relative}
+  .nba::before{content:"NEXT BEST ACTION";position:absolute;top:-12px;left:14px;background:var(--ocean-800);color:#fff;font-size:.72rem;font-weight:800;letter-spacing:.08em;padding:.25rem .6rem;border-radius:999px}
+  .nba ol{margin:.6rem 0 .8rem;padding-left:1.15rem}
+  .nba li{margin:.3rem 0}
+  .check-list{list-style:none;margin:.6rem 0;padding:0;display:grid;gap:.5rem}
+  .check-list li{display:flex;gap:.65rem;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:.6rem .65rem;background:#fbfdfe}
+  .check-list input{width:22px;height:22px;margin-top:.15rem;accent-color:var(--leaf);flex:0 0 22px}
+  .check-list label strong{display:block;font-size:.95rem}
+  .check-list label span{color:var(--muted);font-size:.85rem}
+  li.done{background:var(--leaf-bg);border-color:#bfe3cd}
+  li.done strong{text-decoration:line-through}
+  .ai-mock{background:linear-gradient(180deg,#0a4d5a,#07333d);color:#eafffb;border-radius:14px;padding:.9rem}
+  .ai-header{display:flex;gap:.6rem;align-items:center;margin-bottom:.6rem}
+  .ai-avatar{width:38px;height:38px;border-radius:50%;background:var(--sun);display:grid;place-items:center;font-size:1.2rem;flex:0 0 38px}
+  .chat-log{max-height:260px;overflow-y:auto;display:flex;flex-direction:column}
+  .bubble{background:#fff;color:var(--ink);border-radius:12px 12px 12px 3px;padding:.6rem .7rem;margin:.5rem 0;font-size:.92rem}
+  .bubble.ai{background:#e6f6f5}
+  .bubble.me{background:#fff8ec;border:1px solid #f0dfb8;align-self:flex-end;border-radius:12px 12px 3px 12px}
+  .chips{display:flex;gap:.45rem;flex-wrap:wrap;margin:.6rem 0}
+  .chips button{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;border-radius:999px;padding:.45rem .75rem;font-size:.85rem;font-weight:600;cursor:pointer;min-height:44px}
+  .chips button:hover{background:rgba(255,255,255,.25)}
+  .ask-row{display:flex;gap:.5rem;margin-top:.6rem}
+  .ask-row input{flex:1;border-radius:10px;border:1px solid rgba(255,255,255,.3);padding:.7rem .8rem;font-size:.95rem}
+  .ask-row button{border-radius:10px;border:0;background:var(--sun);font-weight:800;padding:0 1.1rem;cursor:pointer;min-width:52px;min-height:48px;font-size:1.1rem;color:var(--ocean-900)}
+  .disclaimer{font-size:.78rem;color:#bfe6e3;margin:.55rem 0 0}
+  label.field{display:block;margin:.6rem 0 .15rem;font-weight:700;font-size:.9rem}
+  input[type="text"],select{width:100%;border:1.5px solid #c8d9de;border-radius:12px;padding:.7rem .8rem;font-size:1rem;background:#fff;color:var(--ink)}
+  input[type="text"]:focus{outline:none;border-color:var(--teal);box-shadow:var(--focus)}
+  .hint{font-size:.82rem;color:var(--muted);margin:.25rem 0 .5rem}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+  table{width:100%;border-collapse:collapse;font-size:.9rem;margin:.6rem 0}
+  th,td{text-align:left;padding:.5rem .4rem;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.05em}
+  td:last-child,th:last-child{text-align:right}
+  .total{display:flex;justify-content:space-between;font-weight:800;background:var(--sand);border-radius:10px;padding:.6rem .75rem;margin-top:.5rem}
+  .emergency{background:var(--ocean-900);color:#fff;border-radius:var(--radius);padding:1.1rem;border:1px solid #123f49}
+  .emergency h2{color:#fff}
+  .emergency a{color:#ffe9a8}
+  .sos-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin:.7rem 0}
+  .sos{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:.6rem .7rem;font-size:.9rem}
+  .sos strong{display:block}
+  footer{max-width:1180px;margin:0 auto;padding:0 1.25rem 5.5rem;color:var(--muted);font-size:.88rem}
+  .footer-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:1rem;box-shadow:var(--shadow)}
+  #toast{position:fixed;left:50%;bottom:5.5rem;transform:translateX(-50%) translateY(20px);background:var(--ocean-900);color:#fff;padding:.8rem 1.2rem;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;z-index:50;max-width:min(92vw,480px);text-align:center;font-weight:600}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .mobile-nav{display:none;position:fixed;left:.75rem;right:.75rem;bottom:.75rem;z-index:30;background:var(--ocean-900);border-radius:18px;padding:.45rem;grid-template-columns:repeat(6,1fr);gap:.15rem;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+  .mobile-nav a{color:#cfe9e7;text-decoration:none;font-size:.68rem;font-weight:700;text-align:center;padding:.5rem .15rem;border-radius:12px;display:grid;gap:.15rem;place-items:center}
+  .mobile-nav a[aria-current="page"]{background:#fff;color:var(--ocean-900)}
+  .proto-note{max-width:1180px;margin:0 auto;padding:0 1.25rem}
+  .proto-note p{display:inline-block;background:#fff;border:1px dashed #dcc88f;border-radius:999px;padding:.35rem .9rem;font-size:.82rem;color:var(--muted);margin:.8rem 0 0}
+  @media (max-width:980px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}}
+  @media (max-width:640px){nav.main{display:none}.grid{grid-template-columns:1fr}.two-col{grid-template-columns:1fr}.mobile-nav{display:grid}header.site{padding-bottom:0}.hero{padding:1.25rem}.alert-bar-inner{font-size:.82rem}}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<div class="alert-bar" role="status">
+  <div class="alert-bar-inner">
+    <strong><span class="dot" aria-hidden="true"></span> Tropical Wave Watch — Saint Lucia · Sept 26</strong>
+    <span>Official alerts: <a href="#emergency">NEMO Saint Lucia</a> · CDEMA · Met Services — Always follow official instructions.</span>
+  </div>
+</div>
+
+<header class="site">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">◓</div>
+    <div>
+      <h1>IslandReady <span>AI</span></h1>
+      <p class="tagline">Be Prepared. Stay Safe. Build a Stronger Tomorrow.</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span class="pill">🏠 Joseph Family · Castries · 4 + baby</span>
+    <span class="pill" id="offline-pill">📴 Offline pack saved</span>
+  </div>
+</header>
+
+<nav class="main" aria-label="Primary">
+  <div class="nav-card" id="top-nav">
+    <a href="#home" aria-current="page">🏠 Home</a>
+    <a href="#checklist">✅ Checklist</a>
+    <a href="#ai">🤖 AI Assistant</a>
+    <a href="#family">👨‍👩‍👧 Family Plan</a>
+    <a href="#supplies">🧺 Supply Planner</a>
+    <a href="#recovery">🌤️ Recovery</a>
+  </div>
+</nav>
+
+<div class="proto-note"><p>🧪 Working prototype — no login yet. Your checklist &amp; plan save on this device only (localStorage).</p></div>
+
+<main id="main">
+  <section class="hero" id="home" aria-labelledby="hero-title">
+    <div>
+      <span class="eyebrow">🌴 Caribbean-first · Saint Lucia pilot</span>
+      <h2 id="hero-title">You're <span id="hero-score">78%</span> ready.<br />Let's close the last gap — together.</h2>
+      <p>Every Caribbean household can answer: <strong>WHO</strong> do I contact? <strong>WHERE</strong> do we go? <strong>WHAT</strong> do we do next? IslandReady turns alerts into a calm, personal 72-hour plan.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#checklist">Start Next Action →</a>
+        <a class="btn btn-ghost" href="#ai">Ask AI Assistant</a>
+      </div>
+      <p style="margin:.7rem 0 0;font-size:.85rem;color:#bfe6e3">Hurricane &amp; flood plan · <strong style="color:#fff" id="hero-progress">5 of 7 complete</strong> · Last drill: Sept 14</p>
+    </div>
+    <div class="risk-card" aria-label="Weather and risk status">
+      <h3>📡 Weather &amp; Risk — Castries</h3>
+      <div class="risk-row"><span>🌀 Tropical wave, 3 days out</span><span class="badge badge-watch">WATCH</span></div>
+      <div class="risk-row"><span>🌊 Flood / landslide risk</span><span class="badge badge-info">MODERATE</span></div>
+      <div class="risk-row"><span>🔋 Power outage likelihood</span><span class="badge badge-watch">ELEVATED</span></div>
+      <div class="risk-row"><span>🏠 Household vulnerability</span><span class="badge badge-good">LOW · shutters OK</span></div>
+      <p class="hint">Sources: Saint Lucia Met Services · NEMO. This prototype links out — it does not replace official alerts.</p>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="score-title">
+      <h2 id="score-title">Readiness Score</h2>
+      <p class="sub">Across food, water, medical, comms, documents, power, home, evacuation &amp; recovery.</p>
+      <div class="score-wrap">
+        <svg class="score-ring" viewBox="0 0 120 120" role="img" aria-label="Readiness score 78 percent" id="score-svg">
+          <circle cx="60" cy="60" r="52" fill="none" stroke="#e8f0f2" stroke-width="14"/>
+          <circle id="score-arc" cx="60" cy="60" r="52" fill="none" stroke="#0ea5a0" stroke-width="14" stroke-linecap="round"
+            stroke-dasharray="326.73" stroke-dashoffset="71.88" transform="rotate(-90 60 60)"/>
+          <text id="score-num" x="60" y="62" text-anchor="middle" font-size="26" font-weight="800" fill="#07333d">78%</text>
+          <text x="60" y="80" text-anchor="middle" font-size="11" fill="#56707a">READY</text>
+        </svg>
+        <div class="score-text">
+          <strong id="score-big">78%</strong>
+          <p class="sub" style="margin:.2rem 0"><span id="score-delta">+6% this week 🎉</span><br />Biggest gap: <strong style="color:#0a4d5a">emergency communication</strong>.</p>
+        </div>
+      </div>
+      <div class="progress" aria-hidden="true"><span id="score-bar" style="width:78%"></span></div>
+      <p class="gap-note" id="gap-note">💬 <strong>Insight:</strong> Water, food &amp; shutters are strong. Add 1 out-of-island contact + confirm meeting point to reach 85%.</p>
+    </section>
+
+    <section class="card nba" aria-labelledby="nba-title">
+      <h2 id="nba-title">Next Best Action</h2>
+      <p class="sub">Personalized for: 2 adults, 2 kids + baby, grandmother nearby · Castries</p>
+      <ol id="nba-list">
+        <li><strong>Charge power banks &amp; phones tonight</strong> — outage risk elevated.</li>
+        <li><strong>Secure loose outdoor items</strong> — chairs, bins, zinc sheets (15 min).</li>
+        <li><strong>Confirm meeting point:</strong> St. Jude's Church hall, Castries.</li>
+      </ol>
+      <button class="btn btn-primary" id="nba-btn" type="button" style="width:100%">Start Now — complete next item</button>
+      <p class="hint" style="text-align:center">Grounded in NEMO / CDEMA guidance · <a href="#ai">Why this first?</a></p>
+      <p class="hint" id="nba-status" role="status" style="text-align:center;margin:0"></p>
+    </section>
+
+    <section class="card" id="ai" aria-labelledby="ai-title">
+      <h2 id="ai-title">🤖 AI Emergency Assistant</h2>
+      <p class="sub">Calm, source-grounded answers. Never replaces official instructions.</p>
+      <div class="ai-mock">
+        <div class="ai-header">
+          <div class="ai-avatar" aria-hidden="true">🌺</div>
+          <div><strong>IslandHelper</strong><br /><span style="font-size:.82rem;color:#bfe6e3">● Online · knows your household</span></div>
+        </div>
+        <div class="chat-log" id="chat-log" aria-live="polite">
+          <div class="bubble ai"><strong>IslandHelper:</strong> I'm here to help, Joseph family. Ask about hurricanes, shelters, or what to do right now.</div>
+          <div class="bubble me"><strong>You:</strong> Hurricane may come in 3 days. What should we do?</div>
+          <div class="bubble ai"><strong>1.</strong> Secure windows/doors + clear drains.<br /><strong>2.</strong> Store 3-day water/food/meds + charge radio &amp; batteries.<br /><strong>3.</strong> Confirm contacts &amp; meeting point. <em>Source: NEMO Hurricane Guide.</em></div>
+        </div>
+        <div class="chips" aria-label="Suggested questions">
+          <button type="button" data-q="What should I do?">What should I do?</button>
+          <button type="button" data-q="How do I prepare for a hurricane?">Prepare for hurricane</button>
+          <button type="button" data-q="I need help finding a shelter">Find shelter help</button>
+        </div>
+        <form class="ask-row" id="ask-form">
+          <label for="ai-input" class="skip-link">Ask the assistant</label>
+          <input id="ai-input" type="text" placeholder='Try: "What do we do right now?"' aria-label="Ask the AI assistant" autocomplete="off" />
+          <button type="submit" aria-label="Send">➤</button>
+        </form>
+        <p class="disclaimer">⚠️ Always follow official NEMO/CDEMA alerts. In immediate danger, call emergency services first.</p>
+      </div>
+    </section>
+
+    <section class="card" id="checklist" aria-labelledby="checklist-title">
+      <h2 id="checklist-title">✅ Preparedness Checklist</h2>
+      <p class="sub">Hurricane &amp; flood plan · <strong id="check-count">5 of 7 complete</strong></p>
+      <div class="progress" role="progressbar" id="check-progress" aria-valuenow="5" aria-valuemin="0" aria-valuemax="7" aria-label="Checklist progress"><span id="check-bar" style="width:71%"></span></div>
+      <ul class="check-list" id="check-list">
+        <li class="done"><input type="checkbox" checked id="c1" data-key="c1" /><label for="c1"><strong>Secure windows &amp; doors</strong><span>Shutters closed · test one window</span></label></li>
+        <li class="done"><input type="checkbox" checked id="c2" data-key="c2" /><label for="c2"><strong>Clear drains &amp; gutters</strong><span>Prevent yard flooding</span></label></li>
+        <li class="done"><input type="checkbox" checked id="c3" data-key="c3" /><label for="c3"><strong>Store drinking water (3 days)</strong><span>4 people · 12 gal + baby formula</span></label></li>
+        <li class="done"><input type="checkbox" checked id="c4" data-key="c4" /><label for="c4"><strong>Charge devices &amp; radio batteries</strong><span>Power banks + torch</span></label></li>
+        <li class="done"><input type="checkbox" checked id="c5" data-key="c5" /><label for="c5"><strong>Protect docs in zip bag</strong><span>IDs, insurance, clinic cards</span></label></li>
+        <li><input type="checkbox" id="c6" data-key="c6" /><label for="c6"><strong>Confirm evacuation route</strong><span>Castries → St. Jude's hall · 12 min</span></label></li>
+        <li><input type="checkbox" id="c7" data-key="c7" /><label for="c7"><strong>Set out-of-island contact</strong><span>Biggest score gap · +3%</span></label></li>
+      </ul>
+      <button class="btn btn-secondary" id="drill-btn" style="width:100%" type="button">Mark drill complete</button>
+    </section>
+
+    <section class="card" id="family" aria-labelledby="family-title">
+      <h2 id="family-title">👨‍👩‍👧 Family Emergency Plan</h2>
+      <p class="sub">WHO do we contact? WHERE do we go? WHAT next?</p>
+      <label class="field" for="meeting">Meeting point</label>
+      <input type="text" id="meeting" value="St. Jude's Church hall · Castries" />
+      <p class="hint">Backup: Aunt Mary's verandah, Morne Fortune — uphill, no flood zone.</p>
+      <div class="two-col">
+        <div><label class="field" for="mom">Mom (lead)</label><input type="text" id="mom" value="758-555-0142" /></div>
+        <div><label class="field" for="neighbour">Neighbor — Mr. Louis</label><input type="text" id="neighbour" value="758-555-0188" /></div>
+      </div>
+      <label class="field" for="roles">Family roles</label>
+      <input type="text" id="roles" value="Dad: shutters · Mom: docs + baby bag · Gran: meds" />
+      <div style="display:flex;gap:.6rem;margin-top:.9rem;flex-wrap:wrap">
+        <button class="btn btn-primary" id="save-plan" style="flex:1" type="button">Save Family Plan</button>
+        <button class="btn btn-secondary" id="offline-btn" type="button">📴 Offline pack</button>
+      </div>
+      <p class="hint" id="plan-status" role="status">Saved on this device + backed up. Works with no internet.</p>
+    </section>
+
+    <section class="card" id="supplies" aria-labelledby="supply-title">
+      <h2 id="supply-title">🧺 Smart Supply Planner (EC$)</h2>
+      <p class="sub">For <strong>4 people · 3 days</strong> · Saint Lucia prices</p>
+      <table>
+        <thead><tr><th>Item</th><th>Qty</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td>💧 Water</td><td>12 gal</td><td>EC$72</td></tr>
+          <tr><td>🥫 Canned food + baby food</td><td>3-day</td><td>EC$150</td></tr>
+          <tr><td>⛑️ First aid + baby meds</td><td>1 kit</td><td>EC$65</td></tr>
+          <tr><td>🔦 Flashlight + batteries</td><td>2 sets</td><td>EC$40</td></tr>
+          <tr><td>📻 Wind-up radio</td><td>1</td><td>EC$60</td></tr>
+          <tr><td>🧼 Hygiene + diapers</td><td>1 pack</td><td>EC$45</td></tr>
+        </tbody>
+      </table>
+      <div class="total"><span>Estimated total</span><span>EC$432</span></div>
+      <div style="display:flex;gap:.6rem;margin-top:.8rem">
+        <button class="btn btn-primary" id="save-supply" style="flex:1" type="button">Save Shopping List</button>
+      </div>
+      <p class="hint" id="supply-status" role="status"></p>
+    </section>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1fr 1fr">
+    <section class="card" id="recovery" aria-labelledby="rec-title">
+      <h2 id="rec-title">🌤️ Recovery Hub</h2>
+      <p class="sub">You're not alone. Help is available.</p>
+      <ul class="check-list" id="recovery-list">
+        <li><input type="checkbox" id="r1" /><label for="r1"><strong>Photograph damage + add notes</strong><span>Organize for assistance / insurance</span></label></li>
+        <li><input type="checkbox" id="r2" /><label for="r2"><strong>Check official assistance info</strong><span>NEMO + Red Cross Saint Lucia</span></label></li>
+        <li><input type="checkbox" id="r3" /><label for="r3"><strong>Boil-water + food safety check</strong><span>Source: Ministry of Health guide</span></label></li>
+      </ul>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <input type="text" id="recovery-note" placeholder="e.g. Roof leak, north bedroom — photo taken" aria-label="Damage note" style="flex:1;min-width:200px" />
+        <button class="btn btn-secondary" id="recovery-btn" type="button">＋ Add note</button>
+      </div>
+      <p class="hint" id="recovery-status" role="status"></p>
+    </section>
+
+    <section class="emergency" id="emergency" aria-labelledby="sos-title">
+      <h2 id="sos-title">🚨 Emergency &amp; Contacts</h2>
+      <p class="sub" style="color:#bfe6e3;margin:0">In immediate danger, call first — don't rely solely on app.</p>
+      <div class="sos-grid">
+        <div class="sos"><strong>🚑 Emergency — 911</strong>Fire / Police / Ambulance</div>
+        <div class="sos"><strong>📞 NEMO — 452-3802</strong>St. Lucia Emergency Mgmt</div>
+        <div class="sos"><strong>🏥 Castries Hospital</strong>758-458-6700</div>
+        <div class="sos"><strong>🤝 Red Cross SLU</strong>758-452-5583</div>
+      </div>
+      <p style="font-size:.85rem;margin:.2rem 0 0">Shelter list: refer to <a href="#emergency">official NEMO shelter list</a> (static guidance in prototype).</p>
+      <p style="font-size:.85rem;margin:.4rem 0 0">Family contacts: <span id="emergency-family">Mom 758-555-0142 · Mr. Louis 758-555-0188</span></p>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-card">
+    <strong>🛡️ Safety &amp; Trust:</strong> IslandReady AI personalizes trusted NEMO/CDEMA guidance. Every AI answer cites its source category.
+    This is a <strong>local working prototype</strong> — no login, no database, no real-time alerts, no live shelter availability. Data stays on your device (localStorage).
+    <br /><span>Accessible · Mobile-first · Offline-ready · EC$ · English + Kwéyòl-ready</span>
+  </div>
+  <p style="text-align:center;margin:.9rem 0 0">IslandReady AI · Prototype · Be Prepared. Stay Safe. Build a Stronger Tomorrow.</p>
+</footer>
+
+<nav class="mobile-nav" aria-label="Mobile" id="mobile-nav">
+  <a href="#home" aria-current="page">🏠<span>Home</span></a>
+  <a href="#checklist">✅<span>Checklist</span></a>
+  <a href="#ai">🤖<span>AI</span></a>
+  <a href="#family">👨‍👩‍👧<span>Family</span></a>
+  <a href="#supplies">🧺<span>Supplies</span></a>
+  <a href="#recovery">🌤️<span>Recovery</span></a>
+</nav>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  var CIRC = 326.73, BASE = 63, PER_ITEM = 3;
+  var toastEl = document.getElementById("toast"), toastTimer = null;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 2600);
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(m){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m];
+    });
+  }
+
+  /* ---- Readiness score + checklist ---- */
+  var boxes = Array.prototype.slice.call(document.querySelectorAll("#check-list input[type=checkbox]"));
+  function completed(){ return boxes.filter(function(b){ return b.checked; }).length; }
+  function scoreFor(n){ return Math.min(99, BASE + n * PER_ITEM); }
+  function render(){
+    var n = completed(), total = boxes.length, score = scoreFor(n);
+    document.getElementById("check-count").textContent = n + " of " + total + " complete";
+    document.getElementById("hero-progress").textContent = n + " of " + total + " complete";
+    var pct = Math.round(n / total * 100);
+    var bar = document.getElementById("check-bar");
+    bar.style.width = pct + "%";
+    document.getElementById("check-progress").setAttribute("aria-valuenow", n);
+    document.getElementById("score-num").textContent = score + "%";
+    document.getElementById("score-big").textContent = score + "%";
+    document.getElementById("hero-score").textContent = score + "%";
+    document.getElementById("score-svg").setAttribute("aria-label", "Readiness score " + score + " percent");
+    document.getElementById("score-arc").setAttribute("stroke-dashoffset", (CIRC * (1 - score / 100)).toFixed(2));
+    document.getElementById("score-bar").style.width = score + "%";
+    var gap = document.getElementById("gap-note");
+    if(n >= total){ gap.innerHTML = "🎉 <strong>All set!</strong> Full checklist complete. Run a 10-minute family drill to stay sharp."; }
+    else if(document.getElementById("c7") && !document.getElementById("c7").checked){
+      gap.innerHTML = "💬 <strong>Insight:</strong> Water, food &amp; shutters are strong. Add 1 out-of-island contact + confirm meeting point to reach 85%.";
+    } else {
+      gap.innerHTML = "💪 <strong>Nice progress:</strong> " + n + " of " + total + " done. Finish the last items to push past " + score + "%.";
+    }
+    boxes.forEach(function(b){ b.closest("li").classList.toggle("done", b.checked); });
+    try{ localStorage.setItem("ir_checklist", JSON.stringify(boxes.map(function(b){ return b.checked; }))); }catch(e){}
+  }
+  try{
+    var saved = JSON.parse(localStorage.getItem("ir_checklist") || "null");
+    if(Array.isArray(saved) && saved.length === boxes.length){
+      boxes.forEach(function(b,i){ b.checked = !!saved[i]; });
+    }
+  }catch(e){}
+  boxes.forEach(function(b){
+    b.addEventListener("change", function(){
+      render();
+      var label = b.closest("li").querySelector("strong").textContent;
+      toast(b.checked ? "✓ Done: " + label + " — score updated." : "Unchecked: " + label + " — score updated.");
+    });
+  });
+
+  document.getElementById("nba-btn").addEventListener("click", function(){
+    var next = boxes.find(function(b){ return !b.checked; });
+    if(!next){ document.getElementById("nba-status").textContent = "All checklist items complete — run a drill to stay sharp."; toast("All actions complete. Run a family drill 🎉"); return; }
+    next.checked = true; render();
+    var label = next.closest("li").querySelector("strong").textContent;
+    document.getElementById("nba-status").textContent = "Completed: " + label + ".";
+    toast("Next action done: " + label);
+    document.getElementById("checklist").scrollIntoView({behavior:"smooth"});
+  });
+
+  document.getElementById("drill-btn").addEventListener("click", function(){
+    toast("🎉 Drill recorded for Sept 26 — meeting point reviewed in 10 min.");
+  });
+
+  /* ---- AI assistant (local sample logic, no backend) ---- */
+  var log = document.getElementById("chat-log");
+  function respond(q){
+    var t = q.toLowerCase();
+    if(t.indexOf("hurricane") !== -1 || t.indexOf("storm") !== -1)
+      return "<b>Hurricane prep (72-hr plan):</b><br/>1. Follow official NEMO alerts. 2. Secure windows, doors, loose outdoor items; clear drains. 3. Store 3-day water, food, baby supplies, meds; charge radio, batteries, power banks. 4. Confirm contacts + meeting point (St. Jude's hall).<br/><em>Source: NEMO Hurricane Guide (sample).</em>";
+    if(t.indexOf("shelter") !== -1)
+      return "<b>Shelter help:</b><br/>Pack IDs, meds, baby bag, water, torch + radio. Confirm your family plan and transport. For a real event, use the <b>official NEMO shelter list</b> — this prototype does not show live availability.<br/><em>Source: NEMO Shelter Guidance (sample).</em>";
+    if(t.indexOf("right now") !== -1 || (t.indexOf("now") !== -1) || t.indexOf("what should i do") !== -1)
+      return "<b>Your next 3 actions right now:</b><br/>• Check official NEMO/Met alerts.<br/>• Charge phones + power banks.<br/>• Secure loose items; confirm meeting point with Mom + Mr. Louis.<br/><em>Source: CDEMA preparedness checklist (sample).</em>";
+    if(t.indexOf("water") !== -1 || t.indexOf("suppl") !== -1 || t.indexOf("food") !== -1)
+      return "<b>Supplies for 4 people · 3 days (EC$432):</b> Water EC$72, food + baby food EC$150, first aid EC$65, flashlight/batteries EC$40, radio EC$60, hygiene EC$45. See Supply Planner below.<br/><em>Source: sample Saint Lucia prices.</em>";
+    if(t.indexOf("family") !== -1 || t.indexOf("contact") !== -1 || t.indexOf("meeting") !== -1)
+      return "<b>Family plan:</b> Meeting point St. Jude's Church hall (backup: Aunt Mary's verandah). Roles — Dad: shutters · Mom: docs + baby bag · Gran: meds. Save it under Family Plan so it works offline.";
+    return "<b>IslandReady suggestion:</b> Tell me your household size, the hazard, and what you already have — e.g. “4 people + baby, hurricane, have water but no radio” — and I'll turn it into 3 prioritized steps.<br/><em>Prototype uses local sample answers; always follow official instructions.</em>";
+  }
+  function ask(q){
+    q = (q || "").trim();
+    if(!q){ toast("Type a question first — e.g. “What do we do right now?”"); return; }
+    log.insertAdjacentHTML("beforeend", '<div class="bubble me"><strong>You:</strong> ' + escapeHtml(q) + "</div>");
+    log.insertAdjacentHTML("beforeend", '<div class="bubble ai">' + respond(q) + "</div>");
+    log.scrollTop = log.scrollHeight;
+  }
+  document.getElementById("ask-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    var input = document.getElementById("ai-input");
+    ask(input.value); input.value = ""; input.focus();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".chips button"), function(btn){
+    btn.addEventListener("click", function(){ ask(btn.getAttribute("data-q")); });
+  });
+
+  /* ---- Family plan ---- */
+  function loadFamily(){
+    try{
+      var f = JSON.parse(localStorage.getItem("ir_family") || "null");
+      if(f){
+        if(f.meeting) document.getElementById("meeting").value = f.meeting;
+        if(f.mom) document.getElementById("mom").value = f.mom;
+        if(f.neighbour) document.getElementById("neighbour").value = f.neighbour;
+        if(f.roles) document.getElementById("roles").value = f.roles;
+        updateEmergencyLine();
+      }
+    }catch(e){}
+  }
+  function updateEmergencyLine(){
+    document.getElementById("emergency-family").textContent =
+      "Mom " + document.getElementById("mom").value + " · Mr. Louis " + document.getElementById("neighbour").value;
+  }
+  document.getElementById("save-plan").addEventListener("click", function(){
+    var data = {
+      meeting: document.getElementById("meeting").value,
+      mom: document.getElementById("mom").value,
+      neighbour: document.getElementById("neighbour").value,
+      roles: document.getElementById("roles").value,
+      savedAt: new Date().toISOString()
+    };
+    try{ localStorage.setItem("ir_family", JSON.stringify(data)); }catch(e){}
+    updateEmergencyLine();
+    document.getElementById("plan-status").textContent = "✓ Saved on this device just now. Works with no internet.";
+    toast("✓ Family plan saved locally (no login in prototype).");
+  });
+  document.getElementById("offline-btn").addEventListener("click", function(){
+    try{ localStorage.setItem("ir_offline_pack", JSON.stringify({savedAt: new Date().toISOString()})); }catch(e){}
+    document.getElementById("offline-pill").textContent = "📴 Offline pack saved ✓";
+    toast("📴 Offline emergency pack saved on this device.");
+  });
+
+  /* ---- Supplies ---- */
+  document.getElementById("save-supply").addEventListener("click", function(){
+    try{ localStorage.setItem("ir_supply", JSON.stringify({people: 4, days: 3, total: "EC$432", savedAt: new Date().toISOString()})); }catch(e){}
+    document.getElementById("supply-status").textContent = "✓ Shopping list saved (4 people · 3 days · EC$432).";
+    toast("🧺 Shopping list saved: EC$432 for 4 people · 3 days.");
+  });
+
+  /* ---- Recovery ---- */
+  var recoveryList = document.getElementById("recovery-list");
+  recoveryList.addEventListener("change", function(e){
+    if(e.target && e.target.type === "checkbox"){
+      e.target.closest("li").classList.toggle("done", e.target.checked);
+      if(e.target.checked) toast("Recovery step checked — progress saved.");
+    }
+  });
+  document.getElementById("recovery-btn").addEventListener("click", function(){
+    var input = document.getElementById("recovery-note");
+    var v = input.value.trim();
+    if(!v){ toast("Type a damage note first — e.g. roof leak, photo taken."); input.focus(); return; }
+    var id = "rn" + Date.now();
+    var li = document.createElement("li");
+    li.innerHTML = '<input type="checkbox" id="' + id + '" /><label for="' + id + '"><strong>' + escapeHtml(v) + "</strong><span>Added Sept 26 · photo/note filed for assistance</span></label>";
+    recoveryList.appendChild(li);
+    input.value = "";
+    document.getElementById("recovery-status").textContent = "✓ Note added to your recovery file (local only).";
+    toast("✓ Damage note added to recovery file.");
+  });
+
+  /* ---- Nav active state ---- */
+  var navLinks = document.querySelectorAll("#top-nav a, #mobile-nav a");
+  function setActive(hash){
+    navLinks.forEach(function(a){
+      if(a.getAttribute("href") === hash){ a.setAttribute("aria-current", "page"); }
+      else{ a.removeAttribute("aria-current"); }
+    });
+  }
+  navLinks.forEach(function(a){
+    a.addEventListener("click", function(){ setActive(a.getAttribute("href")); });
+  });
+
+  loadFamily();
+  render();
+})();
+</script>
+</body>
+</html>
