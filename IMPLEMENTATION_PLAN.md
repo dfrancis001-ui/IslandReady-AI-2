@@ -1,444 +1,473 @@
 # IslandReady AI — Implementation Plan
 
-## 1. Project Setup and Foundation
+**Status:** Draft for review — no application code is to be built until this plan is approved.
+**Source of truth:** `PRD.md` (v0.1 Starter, 2026-09-26, plus Technical Decision Notes and Implementation Progress notes).
+**Launch market:** Saint Lucia first; architecture must allow expansion to other Caribbean countries later.
+**Run environment:** Application and database run locally for now. No deployment in any phase below except as a written plan.
+
+## Target Architecture
+
+Every phase must conform to this pipeline (PRD §7):
+
+```
+User
+  → Household Profile (location / family / needs / preparedness state)
+  → Risk Engine (hazard + region, household vulnerability, readiness gaps)
+  → Trusted Source / RAG Knowledge (approved NEMO / CDEMA / official guides only)
+  → AI Engine (LLM + personalization prompts)
+  → Safety Layer (rules, source checks, escalation, disclaimers)
+  → IslandReady AI response ("Next Best Action")
+```
+
+Hard safety rule carried through all phases: the AI Emergency Assistant must ground
+safety-critical answers in retrieved trusted sources. It must never invent official
+warnings, shelter availability, evacuation orders, or medical instructions. Every AI
+answer cites its source category and defers to official instructions.
+
+## Technology Stack (local development)
+
+- **Frontend:** Mobile-first web app, PWA-ready (installable, service worker for offline).
+  The approved static prototype (`index.html`, styled from `design.html`) is the UI reference.
+- **Backend:** Local API service (framework to be confirmed in Phase 0; the earlier
+  direction was Next.js — preserve unless Phase 0 review decides otherwise).
+- **Database:** PostgreSQL, running locally (per PRD Technical Decision Notes; chosen over
+  SQLite for multi-household, business, and institutional growth).
+- **Auth:** Local-development authentication (earlier direction: Auth.js — confirm in Phase 0).
+  No real user credentials or secrets are ever committed; local-only test accounts.
+- **AI:** LLM API + vector store for RAG, wired in Phases 6–7. Prototype AI answers are
+  local sample logic and must be replaced by the RAG pipeline, never shipped as final.
+- **File storage:** Local filesystem (damage photos, offline pack assets).
+- **Repository:** GitHub (`IslandReady-AI-2`).
+
+## MVP Non-Goals (restated from PRD §2 — do not build these)
+
+- No real-time official alert ingestion; link out / defer to official alerts.
+- No live shelter availability; static guidance + official shelter list link.
+- No insurance claims filing integration; damage photo/note organization only.
+- No full B2B/B2G portal; business continuity is a stub only.
+
+---
+
+## Phase 0 — Project Setup and Local Foundation
+
+**Objective:** Establish a runnable local environment and project skeleton so every later
+phase has something testable to build on.
+
+**Tasks:**
+1. Confirm framework and auth choices (default: carry forward Next.js + Auth.js unless
+   review finds a reason to change); record the decision in `PRD.md` or this plan.
+2. Create the project folder structure (frontend app, backend API routes, DB migrations,
+   RAG ingestion scripts folder, tests folder).
+3. Install and configure local PostgreSQL; create development database and roles.
+4. Configure environment variables safely (`.env` local-only, never committed;
+   provide `.env.example` with placeholder values only).
+5. Wire the static prototype screens (`index.html`) as the UI reference for Phase 3;
+   confirm the skeleton app opens in a local browser with no errors.
+
+**Dependencies:** None (first phase). Requires the approved PRD and prototype.
+
+**Deliverables:**
+- Runnable project skeleton.
+- Working local PostgreSQL connection.
+- `.env.example` (no real secrets).
+- Documented local run instructions.
+
+**Verification:**
+- Start the app locally; page loads with zero console/build errors.
+- Backend health check responds; database connection check passes.
+- Confirm no secrets/`.env` files are tracked by Git.
+
+---
+
+## Phase 1 — User Accounts and Authentication
+
+**Objective:** Secure accounts so each household's private data is isolated to its owner.
+
+**Tasks:**
+1. Implement sign-up / sign-in / sign-out (local development configuration).
+2. Session handling and route protection for all private pages/APIs.
+3. Link authenticated users to household records (one user may belong to one household
+   in MVP; model must allow multi-household later for Family Pro).
+4. Password handling per auth-library defaults; validate all auth inputs.
+
+**Dependencies:** Phase 0 (skeleton, DB, env config).
+
+**Deliverables:**
+- Working local sign-up / sign-in / sign-out.
+- Authenticated user ↔ household linkage.
+- Protected private routes and API endpoints.
+
+**Verification:**
+- Create a test account, sign in, sign out; sessions expire correctly.
+- Attempt to open another household's data while signed in → access denied.
+- Invalid inputs (bad email, short password, SQL-injection strings) are rejected safely.
+
+---
+
+## Phase 2 — Household Profiles
+
+**Objective:** Capture the household facts that personalize every downstream feature
+(score, AI answers, supplies, family plan).
 
-### Objective
+**Tasks:**
+1. Design the household data model: location (Saint Lucia community), members
+   (adults, children, baby, elderly), special needs (mobility, medical, pets),
+   preparedness-state flags per readiness category.
+2. Create PostgreSQL tables + migrations (users, households, household members).
+3. Build the onboarding form (PRD target: completable in <3 minutes) with large
+   touch targets and simple language.
+4. Connect the form to the database (create, read, update).
 
-Set up the IslandReady AI development environment and establish the project structure.
+**Dependencies:** Phases 0–1 (running app, DB, authenticated user to own the profile).
 
-### Tasks
+**Deliverables:**
+- Household tables in PostgreSQL.
+- Working onboarding/edit form persisted to the database.
 
-- Set up the Next.js application.
-- Configure the project for local development.
-- Set up PostgreSQL for local development.
-- Configure environment variables safely.
-- Establish the main project folder structure.
-- Confirm the application can run locally.
+**Verification:**
+- Create the PRD sample household (4 people + baby, Castries); save, reload, confirm
+  all fields round-trip correctly.
+- Update members/needs; confirm changes persist.
+- Support PRD household variations (elderly, mobility needs, pets, small business flag).
 
-### Deliverables
+---
 
-- Working Next.js project.
-- Local PostgreSQL connection.
-- Initial project structure.
-- Application opens successfully in a local browser.
+## Phase 3 — Readiness Score (0–100), Checklist, and Next Best Action
 
-### Testing
+**Objective:** Build the core assessment system: a trustworthy 0–100 score computed from
+real household preparedness state, with the Next Best Action derived from actual gaps.
 
-- Start the development server.
-- Confirm the application loads without errors.
-- Confirm the database connection works.
+**Tasks:**
+1. Define the 10 readiness categories (PRD F1): food, water, medical, comms, documents,
+   power, home prep, evacuation, contacts, recovery.
+2. Define checklist items per category with weights (start from the prototype's
+   12-item hurricane & flood plan; e.g. secure windows, clear drains, store water,
+   charge devices, protect docs, confirm evacuation route, out-of-island contact).
+3. Implement the scoring function `score(household_state) → 0–100` plus per-category
+   sub-scores; document the weighting so it is explainable ("Biggest gap is emergency
+   communication").
+4. Implement gap detection → Next Best Action generator (top 3 prioritized actions,
+   personalized by household composition and hazard, e.g. baby/elderly needs first).
+5. Persist checklist state per household in PostgreSQL.
 
-## 2. Initial User Interface and Design
+**Dependencies:** Phase 2 (household state is the scoring input).
 
-### Objective
+**Deliverables:**
+- Versioned scoring logic with documented weights.
+- Checklist data model + per-household state storage.
+- Gap → Next Best Action generator.
 
-Create the initial IslandReady AI interface based on the PRD and design preview.
+**Verification:**
+- Fixture households at 0%, ~50%, 78% (prototype sample), and 100%: scores compute
+  as expected and move correctly when items are checked/unchecked (5/12 → 12/12
+  raises the score per PRD acceptance criteria).
+- For a household missing comms items, the Next Best Action names communication first.
+- Score explanation names the true biggest gap in each fixture.
 
-### Tasks
+---
+
+## Phase 4 — Home Dashboard Wired to Real Data
 
-- Create the main dashboard/home page.
-- Apply the IslandReady AI visual identity.
-- Add the Readiness Score display.
-- Add the Next Best Action section.
-- Add navigation.
-- Add preparedness checklist.
-- Add AI Emergency Assistant interface.
-- Add emergency contact area.
-- Make the interface responsive for desktop and mobile.
+**Objective:** Replace the static prototype's hard-coded 78% with the live engine from
+Phase 3, keeping the approved visual identity.
+
+**Tasks:**
+1. Rebuild the dashboard (score ring, weather/risk banner linking to official sources,
+   Next Best Action card, progress line, 6-item navigation, emergency contacts strip)
+   on the app framework, styled consistently with `design.html`.
+2. Bind every number to backend state (score, progress count, gap text); no hard-coded
+   sample values in the shipped UI.
+3. Keep responsive behavior (desktop grid → mobile single column + bottom nav) and
+   accessibility (skip link, ARIA live regions, ≥44px targets, 16px+ type).
 
-### Deliverables
+**Dependencies:** Phases 2–3 (profile + score engine). Visual reference: `design.html`.
 
-- Working IslandReady AI dashboard.
-- Responsive user interface.
-- Design consistent with design.html.
+**Deliverables:**
+- Dashboard page reading live household data.
+- Responsive + accessible UI matching the approved design.
+
+**Verification:**
+- Open locally on desktop and mobile widths; layout matches design, no overlap.
+- Check off a checklist item → score ring, progress, and Next Best Action update.
+- Lighthouse/accessibility spot-check passes; works with keyboard only.
+
+---
+
+## Phase 5 — Family Emergency Plan
+
+**Objective:** Let households record WHO / WHERE / WHAT-next and retrieve it any time.
+
+**Tasks:**
+1. Data model: emergency contacts, meeting point + backup, family roles, comms plan,
+   evacuation info — all scoped to the household.
+2. CRUD UI + API (large-form, low-stress layout; reuse dashboard styling).
+3. Migrate the prototype's `localStorage` plan to PostgreSQL as the source of truth
+   (local copy retained only for the Offline Pack, Phase 8).
+
+**Dependencies:** Phases 1–2 (auth + household to attach the plan to).
+
+**Deliverables:**
+- Family-plan tables, API, and UI with full create/read/update.
+
+**Verification:**
+- Create the sample plan (St. Jude's hall meeting point, Mom/neighbor contacts, Dad/Mom/Gran
+  roles); reload → data intact; edit → updates persist.
+- A second test household cannot read or modify the first household's plan.
+
+---
+
+## Phase 6 — Smart Supply Planner (EC$)
+
+**Objective:** Turn household size + days into a concrete, priced shopping list.
+
+**Tasks:**
+1. Encode the quantities engine: per-person-per-day rates for water, food (+baby food),
+   first aid, batteries, hygiene/diapers; Saint Lucia sample prices
+   (PRD F4 baseline: 4 people / 3 days = EC$432 itemized).
+2. Inputs: people count, days, location; outputs: itemized table + total in EC$.
+3. Save named shopping lists per household; link quantities to household profile
+   (auto-suggest from member count, including baby/elderly adjustments).
+
+**Dependencies:** Phase 2 (household size/composition inputs).
+
+**Deliverables:**
+- Quantities-and-pricing engine with documented rates.
+- Supply Planner UI with save/load per household.
+
+**Verification:**
+- 1 person / 1 day, 4 people / 3 days (= EC$432 baseline), 6 people / 7 days:
+  quantities scale sensibly and totals reconcile with line items.
+- Saved list reloads correctly after logout/login.
+
+---
 
-### Testing
+## Phase 7 — Trusted-Source RAG Knowledge Base
+
+**Objective:** Build the grounded knowledge layer the AI must use — before the AI itself
+is connected — so unsupported answers are impossible by construction.
+
+**Tasks:**
+1. Source governance: confirm the exact approved document set (NEMO Saint Lucia,
+   CDEMA, and named official guides — PRD §11 open question; unlicensed material
+   is excluded).
+2. Ingest pipeline: collect, chunk, and store documents with metadata
+   (source, title, date, category: hurricane / flood / shelter / supplies / health).
+3. Retrieval function: `retrieve(question, household_context) → ranked passages with
+   source citations`; log what was retrieved per query for audit.
+4. Adversarial evaluation set: hurricane / shelter / right-now / flooding / emergency-bag
+   questions; assert retrieved passages are relevant and that the system refuses to
+   answer official-warning questions without a retrieved source.
+
+**Dependencies:** Phase 0 (vector store + ingestion scaffolding). Independent of the
+application UI; can run in parallel with Phases 2–6 once Phase 0 lands.
 
-- Open the dashboard locally.
-- Test navigation and basic interactions.
-- Check the layout on desktop and mobile sizes.
+**Deliverables:**
+- Versioned knowledge base with source metadata and update cadence documented.
+- Retrieval API with citation output and query audit log.
+- Evaluation set with pass/fail results.
 
-## 3. Household Profile and User Data
+**Verification:**
+- Each test question retrieves passages from the correct approved source.
+- A question about live warnings/shelters with no retrieved source → safe refusal
+   directing the user to official channels (never an invented answer).
+- Removing a source document changes retrieval results accordingly (no stale cache).
+
+---
+
+## Phase 8 — AI Emergency Assistant (RAG + Safety Layer)
+
+**Objective:** Connect the assistant UI to the RAG pipeline and LLM through the Safety
+Layer, reproducing the prototype's calm behavior with real grounding.
+
+**Tasks:**
+1. Chat UI with the three chips ("What should I do?", "Prepare for hurricane",
+   "Find shelter help") + free-text input, reusing dashboard styling.
+2. Request flow: user message + household context → Risk Engine inputs → Phase 7
+   retrieval → LLM with personalization prompts → Safety Layer (source-presence check,
+   banned-content rules: no invented warnings/shelters/evacuation orders/medical
+   directives; escalation footer appended).
+3. Every response carries: 3 prioritized steps, source-category citation, and the
+   official-instructions disclaimer.
+4. Replace the prototype's local `ask()/response()` sample logic entirely.
+
+**Dependencies:** Phases 2 (household context), 3 (risk/gap inputs), 7 (retrieval).
+This phase must not start until Phase 7's refusal behavior is verified.
 
-### Objective
+**Deliverables:**
+- Working assistant backed by RAG + Safety Layer.
+- Safety rule set with version history.
 
-Create the foundation for personalized preparedness recommendations.
+**Verification:**
+- "Hurricane in 3 days" → securing + supplies + comms/evac steps with NEMO citation.
+- "Find shelter help" → packing + family-plan steps + official shelter-list referral
+  (no specific shelter claimed as available).
+- "What should I do right now?" → alerts + charge + secure + meeting-point steps.
+- "Is shelter X open?" / "Should we evacuate now?" → refusal + redirect to officials.
+- Each answer shows its source category and disclaimer; audit log records retrieval.
+
+---
+
+## Phase 9 — Offline Emergency Pack (Critical)
+
+**Objective:** Guarantee the essentials work with zero connectivity.
+
+**Tasks:**
+1. Define the pack contents: family plan, contacts, checklist state, core instructions,
+   saved supply list — capped to PRD budget (<5MB, loads <2s on 3G).
+2. Sync engine: on connectivity, download latest pack to IndexedDB/`localStorage`;
+   record pack version + timestamp; show "Offline pack saved" state in UI.
+3. Service worker: cache app shell + pack for offline load; offline fallback page.
+4. Conflict rule: server state wins on reconnect; local edits made offline are flagged
+   for review, never silently overwritten (PRD §11 open question — document the choice).
 
-### Tasks
+**Dependencies:** Phases 4–6 (dashboard, family plan, supplies provide the pack contents).
 
-- Create the household data model.
-- Store household size and relevant preparedness information.
-- Create user/household relationships.
-- Create forms for entering and updating household information.
-- Connect the forms to PostgreSQL.
+**Deliverables:**
+- Offline pack with version indicator and storage-size report.
+- Service worker + offline fallback.
 
-### Deliverables
+**Verification:**
+- With network disabled (dev-tools offline + a real reload): dashboard, plan,
+  contacts, and checklist all open and readable; pack version shown.
+- Pack size measured <5MB; cold load <2s on throttled 3G.
+- Edit online → reconnect → pack refreshes to the new version.
 
-- Household profile functionality.
-- Database tables for household information.
-- Working household profile form.
+---
 
-### Testing
+## Phase 10 — Recovery Hub
 
-- Create sample household information.
-- Save it to the database.
-- Retrieve and display the saved information.
-- Test updating household information.
+**Objective:** Support households after an event: document damage, track recovery tasks,
+find official assistance.
 
-## 4. Readiness Score and Preparedness Checklist
+**Tasks:**
+1. Damage records: photo upload (local filesystem) + notes + timestamp, organized
+   per household for future assistance/insurance use (organization only — no claims
+   filing, per Non-Goals).
+2. Recovery checklists + task tracking (add, check off, persist).
+3. Official assistance info panel (static links: NEMO, Red Cross Saint Lucia;
+   "You're not alone. Help is available." tone).
 
-### Objective
+**Dependencies:** Phases 1–2 (auth + household ownership). Reuses offline patterns
+from Phase 9 for field use where feasible.
 
-Create the core preparedness assessment system.
+**Deliverables:**
+- Recovery Hub UI + photo/note storage + task management.
 
-### Tasks
+**Verification:**
+- Add a damage photo + note + checklist item; all persist and redisplay after reload.
+- Photos are retrievable per household and invisible to other households.
+- Oversized/non-image uploads are rejected with a clear message.
 
-- Define readiness categories:
-  - Food
-  - Water
-  - Medical supplies
-  - Communication
-  - Important documents
-  - Power
-  - Home preparation
-  - Evacuation plan
-  - Family contacts
-  - Recovery preparation
-- Create checklist data structures.
-- Build the readiness calculation logic.
-- Calculate a readiness score from 0–100%.
-- Display the score on the dashboard.
-- Identify incomplete preparedness areas.
-- Generate a Next Best Action based on missing items.
+---
 
-### Deliverables
+## Phase 11 — Business Continuity Stub + Admin / Institutional Functionality
 
-- Working readiness score.
-- Working preparedness checklist.
-- Next Best Action functionality.
+**Objective:** Lay the multi-organization foundation without disturbing households and
+without building the deferred full B2B/B2G portal.
 
-### Testing
+**Tasks:**
+1. Data model: organizations (business / school / church / hotel / NGO / government
+   sponsor) linked to households or standalone; roles: org admin vs. member vs.
+   platform admin.
+2. Business stub only: organization profile, basic continuity checklist, org-level
+   readiness roll-up (household logic reused, clearly labeled experimental).
+3. Institutional view: anonymized aggregate metrics only (completed plans, average
+   score delta — the PRD §10 pilot metrics); no individual household data visible.
+4. Pilot metrics dashboard for the 50–100 household Saint Lucia pilot.
 
-- Test different household preparedness states.
-- Confirm the score changes appropriately.
-- Confirm incomplete items are identified.
-- Confirm the Next Best Action responds to missing preparedness items.
+**Dependencies:** Phases 1–3 (auth, households, scoring). Explicitly builds on, never
+alters, household behavior.
 
-## 5. Family Emergency Plan
+**Deliverables:**
+- Organization data model + stub continuity UI.
+- Anonymized institutional metrics dashboard.
 
-### Objective
+**Verification:**
+- Sample org with 5 households: roll-up math correct; household features unchanged.
+- Institutional account sees aggregates only; direct household-record access denied.
+- Pilot dashboard shows completed plans + average score delta from fixture data.
 
-Allow households to create and maintain an emergency plan.
+---
 
-### Tasks
+## Phase 12 — Safety, Security, and Reliability Review
 
-- Add emergency contacts.
-- Add family roles.
-- Add meeting locations.
-- Add communication plans.
-- Add evacuation information.
-- Store the information in PostgreSQL.
-- Display the completed family plan.
+**Objective:** Prove the system handles emergency information responsibly before any
+real-household pilot.
 
-### Deliverables
+**Tasks:**
+1. AI safety re-test: full Phase 8 verification suite re-run against final prompts.
+2. Access-control audit: household isolation, org boundaries, admin least-privilege.
+3. Input validation + error-handling review across all forms, chat, and uploads.
+4. Secrets audit: no passwords, keys, tokens, or private `.env` values in code,
+   history, or uploads (same scan used for every prior commit).
+5. Privacy check: anonymization of institutional aggregates; child/elder data handling
+   documented (PRD §11 open question — record the adopted policy).
 
-- Family Emergency Plan interface.
-- Database storage for emergency-plan information.
+**Dependencies:** All of Phases 0–11 (reviews the built system end to end).
 
-### Testing
+**Deliverables:**
+- Written safety + security review with findings and fixes.
+- Re-run of all phase verification suites (regression pass).
 
-- Create a sample family plan.
-- Save and retrieve the plan.
-- Edit and update information.
+**Verification:**
+- Invalid inputs, unauthorized-access attempts, and AI safety probes all behave
+  per specification; every finding has a linked fix + retest record.
 
-## 6. Smart Supply Planner
+---
 
-### Objective
+## Phase 13 — Pilot Testing and Iteration (Saint Lucia, 50–100 households)
 
-Help households determine the supplies needed for an emergency.
+**Objective:** Validate with real representative users, including elderly and
+mobility-needs households (PRD personas).
 
-### Tasks
+**Tasks:**
+1. Prepare the pilot build + onboarding script (<3 min) + drill guide.
+2. Run the pilot; collect completion, score-delta, drill-success, and usability data.
+3. Prioritize fixes; implement the top iteration round.
 
-- Collect household size.
-- Collect number of preparedness days.
-- Calculate recommended quantities.
-- Display recommended food, water, medical and emergency supplies.
-- Connect recommendations to the household profile.
+**Dependencies:** Phase 12 sign-off (no real users before the safety review passes).
 
-### Deliverables
+**Deliverables:**
+- Pilot results against the north-star metric (% households with completed + tested plan).
+- Prioritized improvement backlog + implemented top fixes.
 
-- Working Smart Supply Planner.
-- Personalized supply recommendations.
+**Verification:**
+- PRD §10 acceptance criteria checked off: onboarding → score + 3 actions; checklist
+  completion moves the score; AI answers correct with disclaimers; offline reload works;
+  recovery photo/note works; pilot dashboard populated with real numbers.
 
-### Testing
+---
 
-- Test households with different numbers of people.
-- Test different preparedness periods.
-- Confirm recommendations change appropriately.
+## Phase 14 — Production and Caribbean Expansion Plan (plan only, no build)
 
-## 7. AI Emergency Assistant
+**Objective:** Define — but do not execute — the path from local pilot to production
+and to additional countries.
 
-### Objective
+**Tasks:**
+1. Production architecture: hosted PostgreSQL migration, production auth config,
+   secure file storage, monitoring, backups.
+2. Localization framework: per-country hazard profiles, currency, locations, and
+   source sets (Grenada, St Vincent, Dominica, Antigua, St Kitts, Barbados,
+   Trinidad, Jamaica, Bahamas per PRD §6).
+3. Deployment, security-testing, performance-testing, and backup/recovery test plans.
 
-Provide users with an AI assistant for disaster-preparedness questions.
+**Dependencies:** Phase 13 evidence (expansion priorities informed by pilot results).
 
-### Tasks
+**Deliverables:**
+- Production readiness + deployment plan.
+- Caribbean expansion plan. No deployed system in this phase.
 
-- Create the AI assistant interface.
-- Connect the interface to the selected LLM.
-- Implement user questions and responses.
-- Create safety instructions for emergency-related responses.
-- Clearly distinguish AI guidance from official emergency instructions.
+**Verification:** Plans reviewed against PRD NFRs (offline-first, <5MB pack, privacy,
+accessibility); no infrastructure is provisioned until a follow-up decision.
 
-### Deliverables
+---
 
-- Working AI Emergency Assistant.
-- Safety-aware response system.
+## How to use this plan
 
-### Testing
-
-Test questions such as:
-
-- "What should I do right now?"
-- "How do I prepare for flooding?"
-- "What should I put in my emergency bag?"
-- "What should my family do during a hurricane warning?"
-
-## 8. Trusted Sources and RAG
-
-### Objective
-
-Ground disaster-preparedness answers in approved and trusted information.
-
-### Tasks
-
-- Identify approved emergency-management sources.
-- Collect and organize trusted guidance.
-- Create document metadata.
-- Create retrieval functionality.
-- Connect retrieved information to the AI assistant.
-- Display relevant source information when appropriate.
-
-### Deliverables
-
-- Initial trusted-source knowledge base.
-- RAG retrieval system.
-- Source-grounded AI responses.
-
-### Testing
-
-- Test questions against trusted information.
-- Confirm relevant information is retrieved.
-- Check that the AI does not invent official warnings or instructions.
-
-## 9. Offline Emergency Pack
-
-### Objective
-
-Allow users to access critical preparedness information when internet access is unavailable.
-
-### Tasks
-
-- Store essential family-plan information locally.
-- Store emergency contacts.
-- Store preparedness checklists.
-- Store important emergency instructions.
-- Create an offline-access interface.
-
-### Deliverables
-
-- Offline Emergency Pack.
-
-### Testing
-
-- Test access without an internet connection where technically supported.
-- Confirm critical information remains available.
-
-## 10. Recovery Hub
-
-### Objective
-
-Support households after a disaster.
-
-### Tasks
-
-- Create damage notes.
-- Allow users to record recovery tasks.
-- Allow damage photos to be associated with recovery records.
-- Create recovery checklists.
-- Display recovery information and tasks.
-
-### Deliverables
-
-- Recovery Hub.
-- Recovery task management.
-- Damage documentation functionality.
-
-### Testing
-
-- Create sample damage records.
-- Add recovery tasks.
-- Add sample photos.
-- Confirm information is saved and displayed correctly.
-
-## 11. Authentication and User Access
-
-### Objective
-
-Provide secure user accounts for IslandReady AI.
-
-### Tasks
-
-- Implement Auth.js.
-- Create sign-in/sign-out functionality.
-- Connect authenticated users to household profiles.
-- Protect private household information.
-- Configure local authentication development.
-
-### Deliverables
-
-- User authentication.
-- Protected household data.
-
-### Testing
-
-- Test account creation/sign-in where applicable.
-- Test sign-out.
-- Confirm users cannot access another household's private information.
-
-## 12. Business Continuity Foundation
-
-### Objective
-
-Prepare the platform for future business, school, hotel, NGO and institutional users.
-
-### Tasks
-
-- Design organization/account relationships.
-- Identify business preparedness data requirements.
-- Plan organization dashboards.
-- Extend the data model without disrupting household functionality.
-
-### Deliverables
-
-- Business continuity foundation.
-- Data-model plan for future institutional users.
-
-### Testing
-
-- Confirm the household system continues working.
-- Test sample organization structures locally.
-
-## 13. Safety, Security and Reliability Review
-
-### Objective
-
-Ensure the application handles emergency-related information responsibly.
-
-### Tasks
-
-- Review AI safety instructions.
-- Prevent unsupported emergency claims.
-- Clearly identify official emergency information.
-- Review authentication and data access.
-- Check for exposed secrets.
-- Validate user-input handling.
-- Review database access and error handling.
-
-### Deliverables
-
-- Safety review.
-- Security review.
-- Improved error handling.
-
-### Testing
-
-- Test invalid inputs.
-- Test unauthorized access.
-- Test AI safety scenarios.
-- Check that secrets are not committed to GitHub.
-
-## 14. Prototype Testing and User Feedback
-
-### Objective
-
-Test the initial product with representative users.
-
-### Tasks
-
-- Prepare a prototype for testing.
-- Test major user flows.
-- Gather feedback.
-- Identify usability problems.
-- Prioritize improvements.
-
-### Deliverables
-
-- Prototype test results.
-- List of improvements.
-- Updated implementation priorities.
-
-## 15. Future Deployment and Expansion
-
-### Objective
-
-Prepare IslandReady AI for future production deployment and Caribbean expansion.
-
-### Tasks
-
-- Move from local PostgreSQL to a production database.
-- Configure production authentication.
-- Configure secure file storage.
-- Deploy the application.
-- Implement monitoring and backups.
-- Prepare support for additional Caribbean countries.
-
-### Deliverables
-
-- Production-ready architecture.
-- Deployment plan.
-- Caribbean expansion plan.
-
-### Testing
-
-- Production environment testing.
-- Security testing.
-- Performance testing.
-- Backup and recovery testing.
-
-## Current Implementation Stage
-
-The current stage is:
-
-**Initial Working Prototype**
-
-The immediate goal is to implement one working IslandReady AI dashboard page that opens locally in the browser.
-
-The complete application does not need to be finished at this stage.
-
-### Immediate Next Steps
-
-- Build the initial working dashboard.
-- Run the application locally.
-- Test the page in a browser.
-- Fix any errors.
-- Push the working code to the public GitHub repository.
-- Record the required screen demonstration.
-- Continue with the next implementation phase after the prototype has been reviewed.
-
-## Development Environment
-
-The application and PostgreSQL database will run locally during the initial development stage.
-
-## Technology Stack
-
-- Framework: Next.js
-- Database: PostgreSQL
-- Authentication: Auth.js
-- File Storage: Local filesystem during initial development
-- AI: LLM with trusted-source/RAG architecture
-- Repository: GitHub
-
-## Important Implementation Principle
-
-IslandReady AI should be developed incrementally. Each phase should produce a testable result before moving to the next major phase. The initial prototype demonstrates the product direction; later phases add the underlying database, personalization, AI, trusted-source retrieval, offline functionality, recovery features, and future institutional capabilities.
+1. Review and approve this document first — no code changes until then.
+2. Work phases in order; each phase's Dependencies line is a hard gate.
+3. Every phase ends with its Verification steps passing before the next begins
+   (the plan's core incremental principle).
+4. Resolve PRD §11 open questions at the phase that needs them (source licensing in
+   Phase 7, alert/shelter sourcing in Phase 4/8, offline conflicts in Phase 9,
+   disclaimers/privacy in Phase 12) and record each answer in the PRD.
