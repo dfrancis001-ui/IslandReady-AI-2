@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "household": {
+    "id": "fixture-joseph",
+    "location": "Castries, Saint Lucia",
+    "members": { "adults": 2, "children": 2, "baby": true, "elderly": true, "mobility_needs": false, "pets": false }
+  },
+  "fixtures": {
+    "F0_empty":   { "done": [], "expect_score": 0, "expect_gap": "water" },
+    "F1_half":    { "done": ["store_water", "store_food", "secure_windows", "clear_drains", "charge_devices", "protect_docs"], "expect_score": 52 },
+    "F2_proto78": { "done": ["secure_windows", "clear_drains", "store_water", "store_food", "first_aid_meds", "radio_contact", "protect_docs", "evac_route", "meeting_point"], "expect_score": 78 },
+    "F3_full":    { "done": ["all"], "expect_score": 100 },
+    "F4_five":    { "done": ["store_water", "store_food", "secure_windows", "clear_drains", "protect_docs"], "expect_score": 44, "then_complete_all_score": 100 },
+    "F5_comms_gap": { "done": ["all_except", "radio_contact", "island_contact"], "expect_score": 80, "expect_nba_first_category": "comms" },
+    "F6_water_gap": { "done": ["all_except", "store_water"], "expect_score": 86, "expect_gap": "water" }
+  }
+}

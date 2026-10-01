@@ -1,0 +1,9 @@
+# Local-only / generated — never commit real secrets.
+.env
+.env.local
+__pycache__/
+*.pyc
+.pgdata*/
+node_modules/
+.next/
+*.log

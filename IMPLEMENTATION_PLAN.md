@@ -1,6 +1,10 @@
 # IslandReady AI — Implementation Plan
 
-**Status:** Draft for review — no application code is to be built until this plan is approved.
+**Status:** Stack decided (Next.js + Auth.js + PostgreSQL, local-only). Scaffold present.
+Phase 0 exception: persistent local PostgreSQL is BLOCKED — owner has no Windows
+administrator password, so the server install waits on admin access. No admin
+bypass attempted. Details and reconnect steps: `docs/postgres_local_setup.md`.
+Phase 3 engine verification used an isolated embedded test server only.
 **Source of truth:** `PRD.md` (v0.1 Starter, 2026-09-26, plus Technical Decision Notes and Implementation Progress notes).
 **Launch market:** Saint Lucia first; architecture must allow expansion to other Caribbean countries later.
 **Run environment:** Application and database run locally for now. No deployment in any phase below except as a written plan.
@@ -24,15 +28,18 @@ safety-critical answers in retrieved trusted sources. It must never invent offic
 warnings, shelter availability, evacuation orders, or medical instructions. Every AI
 answer cites its source category and defers to official instructions.
 
-## Technology Stack (local development)
+## Technology Stack — DECIDED (Phase 0)
 
-- **Frontend:** Mobile-first web app, PWA-ready (installable, service worker for offline).
-  The approved static prototype (`index.html`, styled from `design.html`) is the UI reference.
-- **Backend:** Local API service (framework to be confirmed in Phase 0; the earlier
-  direction was Next.js — preserve unless Phase 0 review decides otherwise).
-- **Database:** PostgreSQL, running locally (per PRD Technical Decision Notes; chosen over
-  SQLite for multi-household, business, and institutional growth).
-- **Auth:** Local-development authentication (earlier direction: Auth.js — confirm in Phase 0).
+Recorded as the confirmed project stack. Local development only unless a later
+phase explicitly decides otherwise.
+
+- **Framework: Next.js** (App Router). The approved static prototype (`index.html`,
+  styled from `design.html`) remains the UI reference; Phase 4 rebuilds it on Next.js.
+- **Authentication: Auth.js** for local authentication (wired in Phase 1, not before).
+- **Database: PostgreSQL**, running locally (per PRD Technical Decision Notes; chosen
+  over SQLite for multi-household, business, and institutional growth).
+  Owner-installed on Windows; application wiring happens after the install is confirmed.
+- **Auth:** Local-development authentication only.
   No real user credentials or secrets are ever committed; local-only test accounts.
 - **AI:** LLM API + vector store for RAG, wired in Phases 6–7. Prototype AI answers are
   local sample logic and must be replaced by the RAG pipeline, never shipped as final.
