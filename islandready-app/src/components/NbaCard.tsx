@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export interface NbaAction {
   title: string;
   category: string;
@@ -7,7 +9,7 @@ export interface NbaAction {
 export default function NbaCard({ actions }: { actions: NbaAction[] }) {
   return (
     <section className="ir-card ir-nba" aria-labelledby="nba-title">
-      <h2 id="nba-title">Next Best Action</h2>
+      <h2 id="nba-title" style={{ marginTop: "0.4rem" }}>Next Best Action</h2>
       {actions.length === 0 ? (
         <p className="ir-sub">All checklist items complete — run a family drill to stay sharp.</p>
       ) : (
@@ -20,6 +22,9 @@ export default function NbaCard({ actions }: { actions: NbaAction[] }) {
           ))}
         </ol>
       )}
+      <Link className="ir-btn ir-btn-primary" style={{ width: "100%" }} href="/checklist">
+        Start Now — checklist
+      </Link>
       <p className="ir-hint" style={{ textAlign: "center" }}>
         Grounded in NEMO / CDEMA guidance · computed from your live checklist state.
       </p>

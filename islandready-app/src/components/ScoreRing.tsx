@@ -7,6 +7,7 @@ export default function ScoreRing({ score }: { score: number }) {
       <circle cx="60" cy="60" r="52" fill="none" stroke="#e8f0f2" strokeWidth="14" />
       <circle cx="60" cy="60" r="52" fill="none" stroke="#0ea5a0" strokeWidth="14" strokeLinecap="round"
         strokeDasharray={C} strokeDashoffset={offset} transform="rotate(-90 60 60)" />
+      <circle cx="60" cy="60" r="52" fill="none" stroke="#ffc53d" strokeWidth="4" strokeDasharray="4 8" opacity="0.9" transform="rotate(-90 60 60)" />
       <text x="60" y="62" textAnchor="middle" fontSize="26" fontWeight="800" fill="#07333d">{score}%</text>
       <text x="60" y="80" textAnchor="middle" fontSize="11" fill="#56707a">READY</text>
     </svg>

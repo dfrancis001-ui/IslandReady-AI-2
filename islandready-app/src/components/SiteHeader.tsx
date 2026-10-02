@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
+import BrandMark from "./BrandMark";
+
 const LINKS = [
   { href: "/dashboard", label: "Home", icon: "🏠" },
   { href: "/checklist", label: "Checklist", icon: "✅" },
@@ -19,13 +21,15 @@ export default async function SiteHeader({ active }: { active: string }) {
       <a className="skip-link" href="#main">Skip to main content</a>
       <div className="ir-alertbar" role="status">
         <div className="ir-alertbar-inner">
-          <strong><span className="ir-dot" aria-hidden="true" />Tropical Wave Watch — Saint Lucia</strong>
+          <strong><span className="ir-dot" aria-hidden="true" />Hurricane season readiness — Saint Lucia</strong>
           <span>Official alerts: NEMO Saint Lucia · CDEMA — always follow official instructions.</span>
         </div>
       </div>
       <header className="ir-header">
         <div className="ir-brand">
-          <div className="ir-logo" aria-hidden="true">◓</div>
+          <div style={{ flex: "0 0 52px" }}>
+          <BrandMark size={52} />
+        </div>
           <div>
             <h1>IslandReady <span>AI</span></h1>
             <p className="ir-tagline">Be Prepared. Stay Safe. Build a Stronger Tomorrow.</p>

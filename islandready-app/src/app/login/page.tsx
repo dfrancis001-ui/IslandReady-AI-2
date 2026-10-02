@@ -3,6 +3,8 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
 
+import BrandMark from "@/components/BrandMark";
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -10,7 +12,9 @@ export default function LoginPage() {
   return (
     <main className="ir-main" id="main" style={{ maxWidth: 480 }}>
       <div className="ir-brand" style={{ marginBottom: "1rem" }}>
-        <div className="ir-logo" aria-hidden="true">◓</div>
+        <div style={{ flex: "0 0 52px" }}>
+          <BrandMark size={52} />
+        </div>
         <div>
           <h1>IslandReady <span>AI</span></h1>
           <p className="ir-tagline">Be Prepared. Stay Safe. Build a Stronger Tomorrow.</p>

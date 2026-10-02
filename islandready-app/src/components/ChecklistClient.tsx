@@ -19,6 +19,7 @@ export default function ChecklistClient({
   const [done, setDone] = useState<Set<string>>(new Set(initialDone));
   const [score, setScore] = useState<number | null>(null);
   const [status, setStatus] = useState("");
+  const [visitStart] = useState<number>(initialDone.length);
 
   async function refreshScore(next: Set<string>) {
     // Score is derived server-side from live DB state; this just re-reads it.
@@ -55,6 +56,7 @@ export default function ChecklistClient({
       <p className="ir-sub">
         Hurricane &amp; flood plan · <strong>{done.size} of {items.length} complete</strong>
         {score !== null ? <> · <strong>Score: {score}%</strong></> : null}
+        {done.size > visitStart ? <> · <strong>+{done.size - visitStart} this visit 🎉</strong></> : null}
       </p>
       <div className="ir-progress" role="progressbar" aria-valuenow={done.size} aria-valuemin={0} aria-valuemax={items.length} aria-label="Checklist progress">
         <span style={{ width: `${pct}%` }} />
