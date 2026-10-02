@@ -54,7 +54,7 @@ export async function setChecklistItem(
 ): Promise<"ok" | "not-member" | "unknown-item"> {
   if (!(await requireMembership(userId, householdId))) return "not-member";
   const known = await query(
-    "SELECT 1 FROM checklist_items WHERE key = $1",
+    "SELECT 1 FROM checklist_items WHERE \"key\" = $1",
     [item]
   );
   if (known.rowCount === 0) return "unknown-item";
