@@ -14,6 +14,7 @@ import {
 } from "@/lib/scoring";
 import EmergencyStrip from "@/components/EmergencyStrip";
 import NbaCard from "@/components/NbaCard";
+import PackCard from "@/components/PackCard";
 import ScoreRing from "@/components/ScoreRing";
 import SiteHeader from "@/components/SiteHeader";
 import SignOutButton from "./signout-button";
@@ -126,7 +127,7 @@ export default async function DashboardPage() {
                 <Link className="ir-btn" style={{ background: "rgba(255,255,255,.14)", color: "#fff", border: "1px solid rgba(255,255,255,.3)" }} href="/assistant">Ask AI Assistant</Link>
               </div>
               <p style={{ margin: "0.7rem 0 0", fontSize: "0.85rem", color: "#bfe6e3" }}>
-                Hurricane &amp; flood plan · <strong style={{ color: "#fff" }}>{done.size} of {items.length} complete</strong> · {household.community} · <SignOutButton />
+                Hurricane &amp; flood plan · <strong style={{ color: "#fff" }}>{done.size} of {items.length} complete</strong> · {household.community} · <SignOutButton userId={userId} />
               </p>
             </div>
             <div className="ir-risk" aria-label="Weather and risk status">
@@ -269,7 +270,7 @@ export default async function DashboardPage() {
           </section>
         </div>
 
-        <div className="ir-grid" style={{ gridTemplateColumns: "1.4fr 1fr" }}>
+        <div className="ir-grid">
           <EmergencyStrip />
           <section className="ir-card" aria-labelledby="trust-title">
             <h2 id="trust-title">🛡️ Safety &amp; Trust</h2>
@@ -280,6 +281,7 @@ export default async function DashboardPage() {
               availability, no claims filing in this phase.
             </p>
           </section>
+          <PackCard userId={userId} householdId={household.id} />
         </div>
       </main>
     </>
