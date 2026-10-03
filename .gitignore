@@ -6,4 +6,5 @@ __pycache__/
 .pgdata*/
 node_modules/
 .next/
+uploads/
 *.log
