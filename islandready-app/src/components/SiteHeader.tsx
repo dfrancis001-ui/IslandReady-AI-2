@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/family", label: "Family Plan", icon: "👨‍👩‍👧" },
   { href: "/supplies", label: "Supply Planner", icon: "🧺" },
   { href: "/recovery", label: "Recovery", icon: "🌤️" },
+  { href: "/org", label: "Org", icon: "🏢" },
 ];
 
 export default async function SiteHeader({ active }: { active: string }) {
