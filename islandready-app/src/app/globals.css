@@ -222,6 +222,8 @@ a { color: var(--ocean-800); }
   color: #fff; border-radius: 999px; padding: 0.45rem 0.75rem; font-size: 0.85rem; font-weight: 600;
 }
 .ir-disclaimer { font-size: 0.78rem; color: #bfe6e3; margin: 0.55rem 0 0; }
+.ir-bubble-ai { background: #e6f6f5; color: var(--ink); border-radius: 12px 12px 12px 3px; padding: 0.6rem 0.7rem; margin: 0.5rem 0; font-size: 0.92rem; }
+.ir-bubble-me { background: #fff8ec; color: var(--ink); border: 1px solid #f0dfb8; align-self: flex-end; border-radius: 12px 12px 3px 12px; padding: 0.6rem 0.7rem; margin: 0.5rem 0; font-size: 0.92rem; max-width: 88%; }
 .ir-coming {
   background: #f7fbfb; border: 1px solid var(--line); border-radius: 12px;
   padding: 0.6rem 0.75rem; font-size: 0.85rem; margin-top: 0.7rem;
