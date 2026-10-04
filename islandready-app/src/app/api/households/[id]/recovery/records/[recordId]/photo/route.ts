@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { addPhoto, getPhoto, MAX_PHOTO_BYTES } from "@/lib/recovery";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,16 @@ export async function POST(req: Request, { params }: Ctx) {
   const uid = await userId();
   if (!uid) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id, recordId } = await params;
+  if (!checkRateLimit(`photo:${uid}`, 20, 60_000)) {
+    return rateLimitedResponse();
+  }
+  // Request-size ceiling: reject oversized multipart bodies BEFORE buffering.
+  // 6 MB allows the 5 MB photo limit plus multipart overhead; the per-photo
+  // 5 MB rule, MIME sniffing, and EXIF stripping below are unchanged.
+  const contentLength = Number(req.headers.get("content-length") || 0);
+  if (contentLength > 6 * 1024 * 1024) {
+    return NextResponse.json({ error: "Upload too large." }, { status: 413 });
+  }
   let file: File | null = null;
   try {
     const form = await req.formData();

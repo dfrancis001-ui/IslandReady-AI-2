@@ -13,6 +13,7 @@ const C_TERMS = [
 ];
 const C_SHELTER_NEEDS_STATUS = ["shelter", "shelters"];
 const STATUS_VERBS = [" is ", " are ", "open", "closed", "available"];
+const STATUS_NOUNS = ["availability", "status", "update"];
 
 const B_TERMS = ["plan say", "policy", "policies", "version", "strategy", "guideline", "what does"];
 
@@ -20,7 +21,8 @@ export function classifyQuestion(q: string): QuestionClass {
   const t = ` ${q.toLowerCase()} `;
   const hasShelter = C_SHELTER_NEEDS_STATUS.some((w) => t.includes(w));
   const hasStatusVerb = STATUS_VERBS.some((w) => t.includes(w));
-  if (hasShelter && hasStatusVerb) return "C";
+  const hasStatusNoun = STATUS_NOUNS.some((w) => t.includes(w));
+  if (hasShelter && (hasStatusVerb || hasStatusNoun)) return "C";
   if (C_TERMS.some((w) => t.includes(w))) return "C";
   if (B_TERMS.some((w) => t.includes(w))) return "B";
   return "A";

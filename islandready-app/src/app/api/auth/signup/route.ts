@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { getPool, query } from "@/lib/db";
+import { checkRateLimit, clientIp, rateLimitedResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,9 @@ function householdId(): string {
 }
 
 export async function POST(req: Request) {
+  if (!checkRateLimit(`signup:${clientIp(req)}`, 30, 60_000)) {
+    return rateLimitedResponse();
+  }
   let body: { email?: unknown; password?: unknown; community?: unknown };
   try {
     body = await req.json();

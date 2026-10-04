@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { requireMembership } from "@/lib/households";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 import { classifyQuestion } from "@/lib/rag/classify";
 import { OllamaChatProvider, OllamaEmbeddingProvider } from "@/lib/rag/provider";
 import { rank, type Passage } from "@/lib/rag/retrieve";
@@ -50,6 +51,9 @@ export async function POST(
   const householdId = (await params).id;
   const household = await requireMembership(userId, householdId);
   if (!household) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (!checkRateLimit(`ask:${userId}`, 30, 60_000)) {
+    return rateLimitedResponse();
+  }
 
   let body: { question?: unknown };
   try {
