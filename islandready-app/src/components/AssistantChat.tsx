@@ -12,7 +12,7 @@ interface AskResult {
 
 const CHIPS = ["What should I do?", "Prepare for hurricane", "Find shelter help"];
 
-export default function AssistantChat({ householdId }: { householdId: string }) {
+export default function AssistantChat({ householdId, enabled = true }: { householdId: string; enabled?: boolean }) {
   const [log, setLog] = useState<{ me: boolean; text: string }[]>([
     { me: false, text: "I'm IslandHelper. Ask about hurricanes, shelters, or what to do right now — every answer cites its approved sources." },
   ]);
@@ -23,6 +23,11 @@ export default function AssistantChat({ householdId }: { householdId: string }) 
   async function ask(q: string) {
     const question = q.trim();
     if (!question || busy) return;
+    if (!enabled) {
+      setLog((l) => [...l, { me: true, text: question },
+        { me: false, text: "The AI assistant is temporarily unavailable in this deployment. For urgent matters, follow official NEMO/CDEMA instructions." }]);
+      return;
+    }
     if (!online) {
       setLog((l) => [...l, { me: true, text: question },
         { me: false, text: "Assistant unavailable offline — open your essentials and follow official NEMO/CDEMA radio guidance." }]);
@@ -64,6 +69,12 @@ export default function AssistantChat({ householdId }: { householdId: string }) 
         <div className="ir-ai-avatar" aria-hidden="true">🌺</div>
         <div><strong>IslandHelper</strong><br /><span style={{ fontSize: "0.82rem", color: "#bfe6e3" }}>Source-grounded · online only</span></div>
       </div>
+      {!enabled ? (
+        <p className="ir-disclaimer" role="status">
+          The AI assistant is temporarily unavailable in this deployment. For urgent matters,
+          follow official NEMO/CDEMA instructions.
+        </p>
+      ) : null}
       <div aria-live="polite" style={{ maxHeight: 260, overflowY: "auto", display: "flex", flexDirection: "column" }}>
         {log.map((m, i) => (
           <div key={i} className={m.me ? "ir-bubble-me" : "ir-bubble-ai"} style={{ whiteSpace: "pre-wrap" }}>

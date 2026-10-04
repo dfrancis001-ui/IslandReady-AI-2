@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { addPhoto, getPhoto, MAX_PHOTO_BYTES } from "@/lib/recovery";
+import { isUploadsEnabled, unavailableResponse } from "@/lib/features";
 import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,11 @@ export async function POST(req: Request, { params }: Ctx) {
   const { id, recordId } = await params;
   if (!checkRateLimit(`photo:${uid}`, 20, 60_000)) {
     return rateLimitedResponse();
+  }
+  // Deployment gate: uploads need persistent local disk, unavailable here.
+  // Records/tasks are unaffected. Never silently discard: reject before reading.
+  if (!isUploadsEnabled()) {
+    return unavailableResponse("Photo upload");
   }
   // Request-size ceiling: reject oversized multipart bodies BEFORE buffering.
   // 6 MB allows the 5 MB photo limit plus multipart overhead; the per-photo

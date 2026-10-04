@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { isAiEnabled } from "@/lib/features";
 import { myHouseholds } from "@/lib/households";
 import AssistantChat from "@/components/AssistantChat";
 import SiteHeader from "@/components/SiteHeader";
@@ -26,7 +27,7 @@ export default async function AssistantPage() {
             approved sources — currently IslandReady demonstration content while official
             source permission is pending.
           </p>
-          <AssistantChat householdId={households[0].id} />
+          <AssistantChat householdId={households[0].id} enabled={isAiEnabled()} />
           <p><Link href="/dashboard">← Back to dashboard</Link></p>
         </section>
       </main>

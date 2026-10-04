@@ -19,10 +19,12 @@ export default function RecoveryHub({
   householdId,
   initialRecords,
   initialTasks,
+  uploadsEnabled = true,
 }: {
   householdId: string;
   initialRecords: Rec[];
   initialTasks: Task[];
+  uploadsEnabled?: boolean;
 }) {
   const [records, setRecords] = useState<Rec[]>(initialRecords);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
@@ -116,6 +118,9 @@ export default function RecoveryHub({
     <div>
       <section className="ir-card" aria-labelledby="recs-title" style={{ marginBottom: "1rem" }}>
         <h2 id="recs-title">Damage records</h2>
+        {!uploadsEnabled ? (
+          <p className="ir-hint" role="status">📷 Photo uploads are temporarily unavailable in this deployment. Records and tasks below work normally.</p>
+        ) : null}
         <p className="ir-sub">Your notes and photos, organized for assistance or insurance use. Never shared automatically.</p>
         {records.length === 0 ? <p className="ir-sub">No damage records yet.</p> : null}
         <ul className="ir-check">
@@ -140,7 +145,7 @@ export default function RecoveryHub({
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={`${base}/records/${r.id}/photo`} alt={`Damage photo for ${r.title}`}
                         style={{ maxWidth: "100%", borderRadius: 12 }} />
-                    ) : (
+                    ) : uploadsEnabled ? (
                       <label>Attach photo (JPEG/PNG, max 5 MB; location metadata is removed):
                         <input type="file" accept="image/jpeg,image/png" style={{ display: "block", marginTop: "0.3rem" }}
                           onChange={(e) => {
@@ -149,6 +154,8 @@ export default function RecoveryHub({
                             e.target.value = "";
                           }} />
                       </label>
+                    ) : (
+                      <p className="ir-hint">📷 Photo uploads are temporarily unavailable in this deployment. Records and tasks below work normally.</p>
                     )}
                   </span>
                 ) : null}

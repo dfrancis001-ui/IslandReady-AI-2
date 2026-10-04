@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
+import { isAiEnabled, unavailableResponse } from "@/lib/features";
 import { query } from "@/lib/db";
 import { requireMembership } from "@/lib/households";
 import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
@@ -51,6 +52,10 @@ export async function POST(
   const householdId = (await params).id;
   const household = await requireMembership(userId, householdId);
   if (!household) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  // Deployment gate: when disabled, answer honestly WITHOUT any Ollama call.
+  if (!isAiEnabled()) {
+    return unavailableResponse("AI assistant");
+  }
   if (!checkRateLimit(`ask:${userId}`, 30, 60_000)) {
     return rateLimitedResponse();
   }

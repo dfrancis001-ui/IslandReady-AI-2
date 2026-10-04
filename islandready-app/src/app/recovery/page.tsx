@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { isUploadsEnabled } from "@/lib/features";
 import { myHouseholds } from "@/lib/households";
 import { listRecords, listTasks } from "@/lib/recovery";
 import RecoveryHub, { type Rec, type Task } from "@/components/RecoveryHub";
@@ -32,6 +33,7 @@ export default async function RecoveryPage() {
           householdId={household.id}
           initialRecords={(records as unknown as Rec[]) ?? []}
           initialTasks={(tasks as unknown as Task[]) ?? []}
+          uploadsEnabled={isUploadsEnabled()}
         />
         <p><Link href="/dashboard">← Back to dashboard</Link></p>
       </main>
