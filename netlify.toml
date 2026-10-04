@@ -1,11 +1,14 @@
-# IslandReady AI — Netlify build configuration (monorepo layout).
-# Netlify builds from the repository root; the Next.js application lives in
-# islandready-app/ and its build output is islandready-app/.next. Netlify's
-# automatic OpenNext support detects the Next.js app during the build — do NOT
-# pin the legacy @netlify/plugin-nextjs. Secrets (DATABASE_URL,
+# IslandReady AI — Netlify build configuration.
+# The Next.js application lives in islandready-app/, so the site base MUST be
+# that directory: Netlify detects the Next.js framework from the package.json
+# at the base, and only then provisions the OpenNext server/edge deployment
+# (SSR, Route Handlers, middleware). A root base has no package.json, so
+# detection silently fails and the publish output is served as static files
+# (production Page Not Found). Publish is relative to the base directory.
+# Do NOT pin the legacy @netlify/plugin-nextjs. Secrets (DATABASE_URL,
 # NEXTAUTH_SECRET, NEXTAUTH_URL, OLLAMA_*) belong in the Netlify dashboard
 # environment settings, never in this file.
 [build]
-  base = "/"
-  command = "cd islandready-app && npm run build"
-  publish = "islandready-app/.next"
+  base = "islandready-app"
+  command = "npm run build"
+  publish = ".next"
