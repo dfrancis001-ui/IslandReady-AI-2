@@ -1,0 +1,11 @@
+# IslandReady AI — Netlify build configuration.
+# The Next.js application lives in islandready-app/. Netlify's OpenNext
+# adapter (automatic, unpinned) turns `npm run build` output into the
+# server/edge deployment (SSR, Route Handlers, middleware). Do NOT pin the
+# legacy @netlify/plugin-nextjs. Secrets (DATABASE_URL, NEXTAUTH_SECRET,
+# NEXTAUTH_URL, OLLAMA_*) belong in the Netlify dashboard environment
+# settings, never in this file.
+[build]
+  base = "islandready-app"
+  command = "npm run build"
+  publish = ".next"
