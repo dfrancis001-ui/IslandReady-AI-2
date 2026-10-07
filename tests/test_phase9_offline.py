@@ -49,13 +49,17 @@ def api(jar, method, path, json_body=None):
 
 import urllib.error  # noqa: E402
 
-# 1. manifest valid with required fields
+# 1. manifest valid with required fields (PWA: 192 + 512 + maskable icons)
 s, body = api(CookieJar(), 'GET', '/manifest.webmanifest')
 try:
     man = json.loads(body)
+    icons = man.get('icons') or []
+    sizes = {(i.get('sizes'), i.get('purpose', 'any')) for i in icons}
     check('manifest valid', s == 200 and man.get('name') == 'IslandReady AI'
           and man.get('theme_color') == '#07333d'
-          and 'icons' not in man, (s, man))
+          and ('192x192', 'any') in sizes
+          and ('512x512', 'any') in sizes
+          and ('512x512', 'maskable') in sizes, (s, man))
 except Exception as e:
     check('manifest valid', False, e)
 
