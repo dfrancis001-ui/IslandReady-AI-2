@@ -14,3 +14,12 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Serverless-safe defaults (no Ollama server / no persistent disk on Netlify).
+  # Owner can override to "true" in the Netlify dashboard when ready.
+  FEATURE_AI = "false"
+  FEATURE_UPLOADS = "false"
+
+# Production URL for next-auth callbacks. Secrets (DATABASE_URL,
+# NEXTAUTH_SECRET) must still be set in the Netlify dashboard.
+[context.production.environment]
+  NEXTAUTH_URL = "https://remarkable-chebakia-d1fb1d.netlify.app"
