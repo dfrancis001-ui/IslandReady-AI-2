@@ -9,5 +9,8 @@
 # environment settings, never in this file.
 [build]
   base = "islandready-app"
-  command = "npm run build"
+  command = "npm ci && npm run build"
   publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"

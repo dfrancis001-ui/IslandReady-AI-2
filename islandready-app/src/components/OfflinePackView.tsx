@@ -6,7 +6,10 @@ import { readPack, type OfflinePack } from "@/lib/offline-pack";
 export default function OfflinePackView({ userId }: { userId: string }) {
   const [pack, setPack] = useState<OfflinePack | null>(null);
   useEffect(() => {
-    setPack(readPack(userId));
+    const raf = requestAnimationFrame(() => {
+      setPack(readPack(userId));
+    });
+    return () => cancelAnimationFrame(raf);
   }, [userId]);
   if (!pack) {
     return (

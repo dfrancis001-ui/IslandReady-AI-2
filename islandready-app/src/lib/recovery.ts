@@ -7,7 +7,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
-import { getPool, query } from "./db";
+import { query } from "./db";
 import { requireMembership } from "./households";
 
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
