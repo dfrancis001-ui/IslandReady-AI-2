@@ -1,11 +1,13 @@
 "use client";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import BrandMark from "@/components/BrandMark";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
@@ -28,7 +30,7 @@ export default function LoginPage() {
             e.preventDefault();
             setMsg("Signing in…");
             const r = await signIn("credentials", { email, password, redirect: false });
-            if (r?.ok) window.location.href = "/dashboard";
+            if (r?.ok) router.push("/dashboard");
             else setMsg("Invalid email or password.");
           }}
         >
