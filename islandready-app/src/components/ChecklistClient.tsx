@@ -1,27 +1,55 @@
 "use client";
 import { useState } from "react";
+import { score, type CategoryRow } from "@/lib/scoring";
 
 export interface ChecklistItem {
   key: string;
   title: string;
   detail: string;
+  category?: string;
+  tags?: string[];
+}
+
+function demoReadiness(
+  items: ChecklistItem[],
+  categories: CategoryRow[] | undefined,
+  done: Set<string>
+): number {
+  if (categories && categories.length > 0) {
+    const rows = items
+      .filter((i): i is ChecklistItem & { category: string } => Boolean(i.category))
+      .map((i) => ({ key: i.key, category: i.category, title: i.title, tags: i.tags ?? [] }));
+    return score(categories, rows, done);
+  }
+  return items.length > 0 ? Math.round((100 * done.size) / items.length) : 0;
 }
 
 export default function ChecklistClient({
   householdId,
   items,
   initialDone,
+  demo = false,
+  demoCategories,
 }: {
   householdId: string;
   items: ChecklistItem[];
   initialDone: string[];
+  demo?: boolean;
+  demoCategories?: CategoryRow[];
 }) {
   const [done, setDone] = useState<Set<string>>(new Set(initialDone));
-  const [score, setScore] = useState<number | null>(null);
+  const [score, setScore] = useState<number | null>(
+    demo ? demoReadiness(items, demoCategories, new Set(initialDone)) : null
+  );
   const [status, setStatus] = useState("");
   const [visitStart] = useState<number>(initialDone.length);
 
   async function refreshScore(next: Set<string>) {
+    if (demo) {
+      // Demo mode is local-only: never call the authenticated score API.
+      setScore(demoReadiness(items, demoCategories, next));
+      return;
+    }
     // Score is derived server-side from live DB state; this just re-reads it.
     const r = await fetch(`/api/households/${householdId}/score`);
     if (r.ok) {
@@ -32,6 +60,15 @@ export default function ChecklistClient({
   }
 
   async function toggle(key: string, to: boolean) {
+    if (demo) {
+      const next = new Set(done);
+      if (to) next.add(key);
+      else next.delete(key);
+      setDone(next);
+      setStatus(to ? "Checked (demo only — not saved)." : "Unchecked (demo only — not saved).");
+      await refreshScore(next);
+      return;
+    }
     setStatus("Saving…");
     const r = await fetch(`/api/households/${householdId}/checklist`, {
       method: "POST",
@@ -55,7 +92,7 @@ export default function ChecklistClient({
     <>
       <p className="ir-sub">
         Hurricane &amp; flood plan · <strong>{done.size} of {items.length} complete</strong>
-        {score !== null ? <> · <strong>Score: {score}%</strong></> : null}
+        {score !== null ? <> · <strong>Readiness score: {score}%</strong></> : null}
         {done.size > visitStart ? <> · <strong>+{done.size - visitStart} this visit 🎉</strong></> : null}
       </p>
       <div className="ir-progress" role="progressbar" aria-valuenow={done.size} aria-valuemin={0} aria-valuemax={items.length} aria-label="Checklist progress">

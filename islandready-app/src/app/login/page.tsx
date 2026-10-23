@@ -43,6 +43,24 @@ export default function LoginPage() {
         <p role="status">{msg}</p>
         <p className="ir-hint">No account yet? <Link href="/signup">Create one</Link>.</p>
       </section>
+
+      <section className="ir-card" style={{ marginTop: "1rem" }} aria-labelledby="login-demo-title">
+        <span className="ir-badge ir-badge-info">Assessor demo</span>
+        <h2 id="login-demo-title" style={{ marginTop: "0.5rem" }}>No sign-in needed for the demo</h2>
+        <p className="ir-sub">
+          Open the public demo to explore the main IslandReady features with
+          isolated sample data. Sign-in is only for real household, private and
+          organisation data.
+        </p>
+        <p style={{ display: "flex", gap: "0.7rem", flexWrap: "wrap" }}>
+          <Link className="ir-btn ir-btn-primary" href="/demo/dashboard">
+            Explore Assessor Demo →
+          </Link>
+          <Link className="ir-btn ir-btn-secondary" href="/demo">
+            Demo overview
+          </Link>
+        </p>
+      </section>
     </main>
   );
 }

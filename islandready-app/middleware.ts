@@ -7,14 +7,15 @@ import { withAuth } from "next-auth/middleware";
 export const config = { matcher: ["/dashboard/:path*"] };
 
 // Serverless-safe: if NEXTAUTH_SECRET is not configured (fresh Netlify deploy
-// before env is set), send dashboard traffic to /login instead of throwing
-// a 500 from the auth middleware. Once the secret is set, delegate to next-auth.
+// before env is set), send dashboard traffic to the public assessor demo
+// instead of throwing a 500 from the auth middleware. Once the secret is set,
+// this branch is skipped and real dashboard routes stay behind next-auth.
 const authMiddleware = withAuth({ pages: { signIn: "/login" } });
 
 export default function middleware(req: NextRequest) {
   if (!process.env.NEXTAUTH_SECRET) {
     const url = req.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/demo/dashboard";
     return NextResponse.redirect(url);
   }
   // @ts-expect-error withAuth wrapper signature differs from plain middleware

@@ -13,6 +13,15 @@ export default function Home() {
         <Link href="/login">Sign in</Link> · <Link href="/signup">Create account</Link> ·{" "}
         <Link href="/dashboard">Dashboard</Link>
       </p>
+      <p style={{ marginTop: "1rem" }}>
+        <Link href="/demo" className="ir-btn ir-btn-primary">
+          Explore Assessor Demo
+        </Link>
+      </p>
+      <p className="ir-hint">
+        No account needed — sample data only. Demo changes are temporary and never
+        touch real household data.
+      </p>
     </main>
   );
 }

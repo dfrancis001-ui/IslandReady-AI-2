@@ -20,11 +20,13 @@ export default function RecoveryHub({
   initialRecords,
   initialTasks,
   uploadsEnabled = true,
+  demo = false,
 }: {
   householdId: string;
   initialRecords: Rec[];
   initialTasks: Task[];
   uploadsEnabled?: boolean;
+  demo?: boolean;
 }) {
   const [records, setRecords] = useState<Rec[]>(initialRecords);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
@@ -37,6 +39,7 @@ export default function RecoveryHub({
   const base = `/api/households/${householdId}/recovery`;
 
   async function refresh() {
+    if (demo) return;
     const [rr, tt] = await Promise.all([
       fetch(`${base}/records`).then((r) => r.json()),
       fetch(`${base}/tasks`).then((r) => r.json()),
@@ -48,6 +51,16 @@ export default function RecoveryHub({
   async function addRecord() {
     if (!title.trim()) {
       setStatus("Give the record a title first.");
+      return;
+    }
+    if (demo) {
+      setRecords([
+        { id: `demo-rr-${Date.now()}`, title: title.trim(), note: note.trim(), hasPhoto: false },
+        ...records,
+      ]);
+      setTitle("");
+      setNote("");
+      setStatus("Demo record added for this session only — not saved.");
       return;
     }
     const r = await fetch(`${base}/records`, {
@@ -67,6 +80,12 @@ export default function RecoveryHub({
 
   async function removeRecord(id: string, recordTitle: string) {
     if (!window.confirm(`Delete “${recordTitle}” and its photo?`)) return;
+    if (demo) {
+      setRecords(records.filter((r) => r.id !== id));
+      if (openId === id) setOpenId(null);
+      setStatus("Demo record removed from this session.");
+      return;
+    }
     const r = await fetch(`${base}/records/${id}`, { method: "DELETE" });
     setStatus(r.ok ? "Record deleted." : "Could not delete.");
     if (openId === id) setOpenId(null);
@@ -74,6 +93,12 @@ export default function RecoveryHub({
   }
 
   async function uploadPhoto(id: string, file: File) {
+    if (demo) {
+      void id;
+      void file;
+      setStatus("Photo uploads are disabled in the assessor demo.");
+      return;
+    }
     const form = new FormData();
     form.append("photo", file);
     const r = await fetch(`${base}/records/${id}/photo`, { method: "POST", body: form });
@@ -85,6 +110,12 @@ export default function RecoveryHub({
   async function addTask() {
     if (!taskLabel.trim()) {
       setStatus("Give the task a label first.");
+      return;
+    }
+    if (demo) {
+      setTasks([...tasks, { id: Date.now(), label: taskLabel.trim(), done: false }]);
+      setTaskLabel("");
+      setStatus("Demo task added for this session only — not saved.");
       return;
     }
     const r = await fetch(`${base}/tasks`, {
@@ -101,6 +132,11 @@ export default function RecoveryHub({
   }
 
   async function toggleTask(t: Task) {
+    if (demo) {
+      setTasks(tasks.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)));
+      setStatus("Demo task updated in this session.");
+      return;
+    }
     await fetch(`${base}/tasks/${t.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -110,6 +146,11 @@ export default function RecoveryHub({
   }
 
   async function removeTask(t: Task) {
+    if (demo) {
+      setTasks(tasks.filter((x) => x.id !== t.id));
+      setStatus("Demo task removed from this session.");
+      return;
+    }
     await fetch(`${base}/tasks/${t.id}`, { method: "DELETE" });
     await refresh();
   }

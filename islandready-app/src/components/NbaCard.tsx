@@ -6,7 +6,15 @@ export interface NbaAction {
   reason: string;
 }
 
-export default function NbaCard({ actions }: { actions: NbaAction[] }) {
+export default function NbaCard({
+  actions,
+  checklistHref = "/checklist",
+  demo = false,
+}: {
+  actions: NbaAction[];
+  checklistHref?: string;
+  demo?: boolean;
+}) {
   return (
     <section className="ir-card ir-nba" aria-labelledby="nba-title">
       <h2 id="nba-title" style={{ marginTop: "0.4rem" }}>Next Best Action</h2>
@@ -22,11 +30,13 @@ export default function NbaCard({ actions }: { actions: NbaAction[] }) {
           ))}
         </ol>
       )}
-      <Link className="ir-btn ir-btn-primary" style={{ width: "100%" }} href="/checklist">
+      <Link className="ir-btn ir-btn-primary" style={{ width: "100%" }} href={checklistHref}>
         Start Now — checklist
       </Link>
       <p className="ir-hint" style={{ textAlign: "center" }}>
-        Grounded in NEMO / CDEMA guidance · computed from your live checklist state.
+        {demo
+          ? "Sample data only — this demo does not save checklist changes."
+          : "Grounded in NEMO / CDEMA guidance · computed from your live checklist state."}
       </p>
     </section>
   );
