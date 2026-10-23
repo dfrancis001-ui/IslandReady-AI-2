@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { calcSupplies, validateInputs, type CatalogRow } from "@/lib/supplies";
 
 export interface CalcLine {
   key: string;
@@ -26,10 +27,14 @@ export default function SupplyPlanner({
   householdId,
   defaultPeople,
   initialLists,
+  demo = false,
+  demoCatalog,
 }: {
   householdId: string;
   defaultPeople: number;
   initialLists: SavedSummary[];
+  demo?: boolean;
+  demoCatalog?: CatalogRow[];
 }) {
   const [people, setPeople] = useState(String(defaultPeople));
   const [days, setDays] = useState("3");
@@ -39,6 +44,21 @@ export default function SupplyPlanner({
   const [status, setStatus] = useState("");
 
   async function calculate() {
+    if (demo) {
+      const v = validateInputs(Number(people), Number(days));
+      if (v.error || !v.clean) {
+        setStatus(v.error ?? "Invalid inputs.");
+        return;
+      }
+      if (!demoCatalog) {
+        setStatus("Demo catalog unavailable.");
+        return;
+      }
+      const result = calcSupplies(demoCatalog, v.clean.people, v.clean.days);
+      setCalc({ lines: result.lines, totalCents: result.totalCents });
+      setStatus("Demo calculation only — nothing is saved.");
+      return;
+    }
     setStatus("Calculating…");
     const r = await fetch(`/api/households/${householdId}/supplies/calculate`, {
       method: "POST",
@@ -55,6 +75,7 @@ export default function SupplyPlanner({
   }
 
   async function refreshLists() {
+    if (demo) return;
     const r = await fetch(`/api/households/${householdId}/supplies/lists`);
     if (r.ok) setLists((await r.json()).lists);
   }
@@ -62,6 +83,32 @@ export default function SupplyPlanner({
   async function save() {
     if (!name.trim()) {
       setStatus("Give the list a name first.");
+      return;
+    }
+    if (demo) {
+      const v = validateInputs(Number(people), Number(days));
+      if (v.error || !v.clean) {
+        setStatus(v.error ?? "Invalid inputs.");
+        return;
+      }
+      if (!demoCatalog) {
+        setStatus("Demo catalog unavailable.");
+        return;
+      }
+      const result = calcSupplies(demoCatalog, v.clean.people, v.clean.days);
+      setLists([
+        {
+          id: `demo-list-${Date.now()}`,
+          name: name.trim(),
+          people: v.clean.people,
+          days: v.clean.days,
+          pricingVersion: result.version,
+          totalCents: result.totalCents,
+        },
+        ...lists,
+      ]);
+      setName("");
+      setStatus("Demo list saved for this browser session only — not persisted.");
       return;
     }
     setStatus("Saving…");
@@ -82,12 +129,33 @@ export default function SupplyPlanner({
 
   async function remove(id: string, listName: string) {
     if (!window.confirm(`Delete “${listName}”?`)) return;
+    if (demo) {
+      setLists(lists.filter((l) => l.id !== id));
+      setStatus("Demo list removed from this browser session.");
+      return;
+    }
     const r = await fetch(`/api/households/${householdId}/supplies/lists/${id}`, { method: "DELETE" });
     setStatus(r.ok ? "List deleted." : "Could not delete.");
     await refreshLists();
   }
 
   async function load(id: string) {
+    if (demo) {
+      const l = lists.find((x) => x.id === id);
+      if (!l) {
+        setStatus("Could not load list.");
+        return;
+      }
+      setPeople(String(l.people));
+      setDays(String(l.days));
+      setName(l.name);
+      if (demoCatalog) {
+        const result = calcSupplies(demoCatalog, l.people, l.days);
+        setCalc({ lines: result.lines, totalCents: result.totalCents });
+      }
+      setStatus("Demo list loaded for this session.");
+      return;
+    }
     const r = await fetch(`/api/households/${householdId}/supplies/lists/${id}`);
     if (!r.ok) {
       setStatus("Could not load list.");

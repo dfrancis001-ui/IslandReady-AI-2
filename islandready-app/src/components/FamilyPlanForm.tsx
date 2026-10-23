@@ -33,13 +33,19 @@ const EMPTY: PlanData = {
 export default function FamilyPlanForm({
   householdId,
   initial,
+  demo = false,
 }: {
   householdId: string;
   initial: PlanData | null;
+  demo?: boolean;
 }) {
   const [form, setForm] = useState<PlanData>(initial ?? EMPTY);
   const [status, setStatus] = useState(
-    initial ? "Loaded from your household record." : "No plan saved yet — fill in and save."
+    initial
+      ? demo
+        ? "Loaded with sample demo data. Nothing is saved."
+        : "Loaded from your household record."
+      : "No plan saved yet — fill in and save."
   );
 
   function set<K extends keyof PlanData>(key: K, value: PlanData[K]) {
@@ -47,6 +53,14 @@ export default function FamilyPlanForm({
   }
 
   async function save() {
+    if (demo) {
+      if (!form.meetingPoint.trim()) {
+        setStatus("Add a primary meeting point first (demo only).");
+        return;
+      }
+      setStatus("Demo only — this plan is kept in the page and is not saved to any database.");
+      return;
+    }
     setStatus("Saving…");
     const r = await fetch(`/api/households/${householdId}/family-plan`, {
       method: "POST",

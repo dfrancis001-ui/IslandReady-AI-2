@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { DEMO_ASSISTANT_ANSWERS } from "@/lib/demo-data";
 
 interface AskResult {
   steps?: string[];
@@ -12,9 +13,22 @@ interface AskResult {
 
 const CHIPS = ["What should I do?", "Prepare for hurricane", "Find shelter help"];
 
-export default function AssistantChat({ householdId, enabled = true }: { householdId: string; enabled?: boolean }) {
+export default function AssistantChat({
+  householdId,
+  enabled = true,
+  demo = false,
+}: {
+  householdId: string;
+  enabled?: boolean;
+  demo?: boolean;
+}) {
   const [log, setLog] = useState<{ me: boolean; text: string }[]>([
-    { me: false, text: "I'm IslandHelper. Ask about hurricanes, shelters, or what to do right now — every answer cites its approved sources." },
+    {
+      me: false,
+      text: demo
+        ? "Sample mode: ask a sample question and I will show a fixed demonstration answer. No live AI model is connected."
+        : "I'm IslandHelper. Ask about hurricanes, shelters, or what to do right now — every answer cites its approved sources.",
+    },
   ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -23,6 +37,19 @@ export default function AssistantChat({ householdId, enabled = true }: { househo
   async function ask(q: string) {
     const question = q.trim();
     if (!question || busy) return;
+    if (demo) {
+      const lower = question.toLowerCase();
+      const match = DEMO_ASSISTANT_ANSWERS.find((a) =>
+        a.keywords.some((k) => lower.includes(k))
+      );
+      const answer =
+        match?.text ??
+        "Sample answer: this demo shows fixed guidance only. For real emergencies, follow " +
+          "NEMO Saint Lucia, CDEMA and local emergency services. No live AI model is connected.";
+      setLog((l) => [...l, { me: true, text: question }, { me: false, text: answer }]);
+      setInput("");
+      return;
+    }
     if (!enabled) {
       setLog((l) => [...l, { me: true, text: question },
         { me: false, text: "The AI assistant is temporarily unavailable in this deployment. For urgent matters, follow official NEMO/CDEMA instructions." }]);
@@ -67,7 +94,7 @@ export default function AssistantChat({ householdId, enabled = true }: { househo
     <div className="ir-ai">
       <div className="ir-ai-head">
         <div className="ir-ai-avatar" aria-hidden="true">🌺</div>
-        <div><strong>IslandHelper</strong><br /><span style={{ fontSize: "0.82rem", color: "#bfe6e3" }}>Source-grounded · online only</span></div>
+        <div><strong>IslandHelper</strong><br /><span style={{ fontSize: "0.82rem", color: "#bfe6e3" }}>{demo ? "Sample answers · no live AI" : "Source-grounded · online only"}</span></div>
       </div>
       {!enabled ? (
         <p className="ir-disclaimer" role="status">
@@ -97,7 +124,10 @@ export default function AssistantChat({ householdId, enabled = true }: { househo
         <button type="submit" aria-label="Send" disabled={busy}
           style={{ borderRadius: 10, border: 0, background: "var(--sun)", fontWeight: 800, padding: "0 1.1rem", minWidth: 52, minHeight: 48 }}>➤</button>
       </form>
-      <p className="ir-disclaimer">⚠️ Always follow official NEMO/CDEMA alerts. In immediate danger, call emergency services first.</p>
+      <p className="ir-disclaimer">
+        ⚠️ {demo ? "Sample answers only — no live AI. " : ""}Always follow official NEMO/CDEMA alerts.
+        In immediate danger, call emergency services first.
+      </p>
     </div>
   );
 }
