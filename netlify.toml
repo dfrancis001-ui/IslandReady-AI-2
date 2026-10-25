@@ -21,5 +21,6 @@
 
 # Production URL for next-auth callbacks. Secrets (DATABASE_URL,
 # NEXTAUTH_SECRET) must still be set in the Netlify dashboard.
-[context.production.environment]
-  NEXTAUTH_URL = "https://remarkable-chebakia-d1fb1d.netlify.app"
+# NEXTAUTH_URL, DATABASE_URL and NEXTAUTH_SECRET are set in the Netlify
+# dashboard (Project configuration > Environment variables > Production),
+# not here, so no environment value is committed to the repository.
